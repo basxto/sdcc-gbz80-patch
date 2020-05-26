@@ -161,6 +161,7 @@ incLabelJmpToCount (const char *label)
 /* 2. increment "label jump-to count" in labelHash                 */
 /* 3. search lineNode with label definition and return it          */
 /*-----------------------------------------------------------------*/
+//TODO: gbz80 compatible
 static lineNode *
 findLabel (const lineNode *pl)
 {
@@ -501,6 +502,9 @@ z80MightRead(const lineNode *pl, const char *what)
   return(true);
 }
 
+//TODO: gbz80 compatible
+// JP HL, JP n16, PR e8
+// TODO: maybe we have to handle JP HL somehow which is jp (hl) here
 static bool
 z80UncondJump(const lineNode *pl)
 {
@@ -510,6 +514,8 @@ z80UncondJump(const lineNode *pl)
   return FALSE;
 }
 
+//TODO: gbz80 compatible
+// JP cc, n16, JR cc, e8
 static bool
 z80CondJump(const lineNode *pl)
 {
@@ -596,6 +602,8 @@ z80SurelyWrites(const lineNode *pl, const char *what)
   return(false);
 }
 
+//TODO: gbz80 compatible
+// this matches ret, ret cc and reti
 static bool
 z80SurelyReturns(const lineNode *pl)
 {
