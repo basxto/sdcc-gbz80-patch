@@ -37,6 +37,7 @@
 #define D(_s)
 #endif
 
+//TODO: gbz80 compatible
 #define ISINST(l, i) (!STRNCASECMP((l), (i), sizeof(i) - 1) && (!(l)[sizeof(i) - 1] || isspace((unsigned char)((l)[sizeof(i) - 1]))))
 
 typedef enum
@@ -62,6 +63,7 @@ extern bool z80_regs_preserved_in_calls_from_current_function[IYH_IDX + 1];
 /*-----------------------------------------------------------------*/
 /* univisitLines - clear "visited" flag in all lines               */
 /*-----------------------------------------------------------------*/
+//TODO: gbz80 compatible
 static void
 unvisitLines (lineNode *pl)
 {
@@ -638,6 +640,7 @@ z80SurelyReturns(const lineNode *pl)
 /*    S4O_TERM                                                     */
 /*       acall, lcall, ret and reti "terminate" a scan.            */
 /*-----------------------------------------------------------------*/
+//TODO: gbz80 compatible
 static S4O_RET
 scan4op (lineNode **pl, const char *what, const char *untilOp,
          lineNode **plCond)
@@ -712,6 +715,7 @@ scan4op (lineNode **pl, const char *what, const char *untilOp,
 /* - action required on different return values                    */
 /* - recursion in case of conditional branches                     */
 /*-----------------------------------------------------------------*/
+//TODO: gbz80 compatible
 static bool
 doTermScan (lineNode **pl, const char *what)
 {
@@ -745,6 +749,7 @@ doTermScan (lineNode **pl, const char *what)
 }
 
 /* Regular 8 bit reg */
+//TODO: gbz80 compatible
 static bool
 isReg(const char *what)
 {
@@ -765,6 +770,7 @@ isReg(const char *what)
 }
 
 /* 8-Bit reg only accessible by 16-bit and undocumented instructions */
+//TODO: gbz80 compatible since we don't need it
 static bool
 isUReg(const char *what)
 {
@@ -792,11 +798,34 @@ isRegPair(const char *what)
     return TRUE;
   if(strcmp(what, "iy") == 0)
     return TRUE;
+  //TODO: what about af?
+  //it probably gets ignored because flags are tricky
   return FALSE;
 }
 
 /* Check that what is never read after endPl. */
+//TODO: gbz80 compatible
+//on gbz80 we just don’t care about iy and ix since we won't get it as input
+//all compatible functions get marked with the TODO above, calls to other functions don't matter
 
+//z80notUsed
+//-> isRegPair() -|
+//-> isReg() -|
+//-> isUReg() -|
+//-> unvisitLines()
+//-> doTermScan()
+// -> scan4op()
+//  -> z80MightRead() [longest and most important]
+//   -> z80MightBeParmInCallFromCurrentFunction()
+//   -> argCont()
+//   -> isReturned()
+//  -> z80UncondJump()
+//  -> findLabel()
+//   -> incLabelJmpToCount()
+//  -> z80CondJump()
+//  -> z80SurelyWrites()
+//   -> ISINST() [and the others also] -|
+//  -> z80SurelyReturns()
 bool
 z80notUsed (const char *what, lineNode *endPl, lineNode *head)
 {
