@@ -206,6 +206,7 @@ findLabel (const lineNode *pl)
 
 /* Check if reading arg implies reading what. */
 // TODO: think this lacks handling of (hl+)/(hl-)
+// appears to read the second parameter
 //TODO: gbz80 compatible
 static bool argCont(const char *arg, const char *what)
 {
@@ -220,7 +221,7 @@ static bool argCont(const char *arg, const char *what)
   // if not (a) and (bc) ??
   // for (hl+) it should also check arg[4] != ')'? or (arg[3] == '-' || arg[3] == '+') to not break other platforms
   // this should handle (hl+)/(hl-)
-  if(arg[0] == '(' && arg[1] && arg[2] && (arg[2] != ')' && arg[3] != ')') && !((arg[3] == '-' || arg[3] == '+') && arg[4] == ')'))
+  if(arg[0] == '(' && arg[1] && arg[2] && (arg[2] != ')' && arg[3] != ')') && !(IS_GB && (arg[3] == '-' || arg[3] == '+') && arg[4] == ')'))
     return FALSE;
 
   if(*arg == '(')
@@ -258,6 +259,8 @@ z80MightBeParmInCallFromCurrentFunction(const char *what)
   return FALSE;
 }
 
+//TODO: implement missing STOP, HALT, SCF, ADD SP?, JP (HL), IN/OUT/LDH and fix ldd/ldi
+//fully read through and made notes
 static bool
 z80MightRead(const lineNode *pl, const char *what)
 {
@@ -318,15 +321,18 @@ z80MightRead(const lineNode *pl, const char *what)
     return(!!strstr(what, "iy"));
   if(!strcmp(pl->line, "ex\tde, hl") || !strcmp(pl->line, "ex\tde,hl"))
     return(!strcmp(what, "h") || !strcmp(what, "l") || !strcmp(what, "d") || !strcmp(what, "e"));
-  //TODO: have to go through this, might have to handle (hl+)/(hl-)
+  //~~TODO: have to go through this, might have to handle (hl+)/(hl-)~~
   // I think it properly handles them already, since hl gits definitely read here
   // but is strstr(pl->line + 3, what) compatible?
   // I think so (standard c function)
   // we have to dive into argCont, the second if just handles ld (hl+),a ,but not ld a,(hl+)
   if(ISINST(pl->line, "ld"))
     {
+      // right argument
       if(argCont(strchr(pl->line, ','), what))
         return(true);
+      // left argument
+      // this catches ld (r16), stuff as well as ld (hl+), and ld (hl-),
       if(*(strchr(pl->line, ',') - 1) == ')' && strstr(pl->line + 3, what) && (strchr(pl->line, '#') == 0 || strchr(pl->line, '#') > strchr(pl->line, ',')))
         return(true);
       return(false);
@@ -345,6 +351,8 @@ z80MightRead(const lineNode *pl, const char *what)
       const char *arg = pl->line + 4;
       while(isspace(*arg))
         arg++;
+      //yes
+      //only reg possible on left hand
       if(arg[0] == 'a' && arg[1] == ',')
         {
           if(!strcmp(what, "a"))
@@ -363,12 +371,16 @@ z80MightRead(const lineNode *pl, const char *what)
             return(true);
           arg += 3;
         }
+      //only 16bit one possilbe on left hand ... and only with add
+      //TODO: SP is missing
+      // I guess it does not get used with notUsed
       else if(!strncmp(arg, "hl", 2) && arg[2] == ',') // add hl, rr
         {
           if(!strcmp(what, "h") || !strcmp(what, "l"))
             return(true);
           arg += 3;
         }
+      //don't have that on gb
       else if(arg[0] == 'i') // add ix/y, rr
         {
           if(!strncmp(arg, what, 2))
@@ -378,6 +390,7 @@ z80MightRead(const lineNode *pl, const char *what)
       return(argCont(arg, what));
     }
 
+  // we just have a as left argument, it’s fine
   if(ISINST(pl->line, "or") || ISINST(pl->line, "cp") )
     {
       const char *arg = pl->line + 3;
@@ -397,28 +410,33 @@ z80MightRead(const lineNode *pl, const char *what)
         }
       return(argCont(arg, what));
     }
-
+  // don’t have that on gb
   if(ISINST(pl->line, "neg"))
     return(strcmp(what, "a") == 0);
-
+  // looks fine
   if(ISINST(pl->line, "pop"))
     return(false);
-
+  // looks fine
   if(ISINST(pl->line, "push"))
     return(strstr(pl->line + 5, what) != 0);
 
+  // TODO: what’s with SP?
+  // I guess it does not get used with notUsed
   if(ISINST(pl->line, "dec") ||
      ISINST(pl->line, "inc"))
     {
       return(argCont(pl->line + 4, what));
     }
-
+  //fine
   if(ISINST(pl->line, "cpl"))
     return(!strcmp(what, "a"));
-
+  //fine
   if(ISINST(pl->line, "di") || ISINST(pl->line, "ei"))
     return(false);
+  //TODO: belongs swap here?
+  //nope swap should call argCont
 
+  // fine
   // Rotate and shift group
   if(ISINST(pl->line, "rlca") ||
      ISINST(pl->line, "rla")  ||
@@ -432,18 +450,26 @@ z80MightRead(const lineNode *pl, const char *what)
     {
       return(argCont(pl->line + 3, what));
     }
+  //TODO: what about RRC
   if(ISINST(pl->line, "rlc") ||
      ISINST(pl->line, "sla") ||
+     ISINST(pl->line, "rrc") ||
      ISINST(pl->line, "sra") ||
      ISINST(pl->line, "srl"))
     {
       return(argCont(pl->line + 4, what));
+    }
+  //TODO: right position?
+  if(IS_GB && ISINST(pl->line, "swap"))
+    {
+      return(argCont(pl->line + 5, what));
     }
   if(!IS_GB && !IS_RAB &&
     (ISINST(pl->line, "rld") ||
      ISINST(pl->line, "rrd")))
     return(!!strstr("ahl", what));
 
+  // looks fine
   // Bit set, reset and test group
   if(ISINST(pl->line, "bit") ||
      ISINST(pl->line, "set") ||
@@ -456,14 +482,19 @@ z80MightRead(const lineNode *pl, const char *what)
     ISINST(pl->line, "nop"))
     return(false);
 
+  //TODO: but what about jp (hl)?
   if(ISINST(pl->line, "jp") || ISINST(pl->line, "jr"))
     return(false);
-
+  // don't have that on gb
   if(ISINST(pl->line, "djnz"))
     return(strchr(what, 'b') != 0);
 
+  // I guess the ldd is working differently on gb?
   if(!IS_GB && (ISINST(pl->line, "ldd") || ISINST(pl->line, "lddr") || ISINST(pl->line, "ldi") || ISINST(pl->line, "ldir")))
     return(strchr("bcdehl", *what));
+  //TODO: ldd (hl),a isn't handled properly yet
+  if(IS_GB && (ISINST(pl->line, "ldd") || ISINST(pl->line, "ldi")))
+    return(strchr("hl", *what));
 
   if(!IS_GB && !IS_RAB && (ISINST(pl->line, "cpd") || ISINST(pl->line, "cpdr") || ISINST(pl->line, "cpi") || ISINST(pl->line, "cpir")))
     return(strchr("abchl", *what));
@@ -472,6 +503,7 @@ z80MightRead(const lineNode *pl, const char *what)
     return(strstr(strchr(pl->line + 4, ','), what) != 0 || strstr(pl->line + 4, "(c)") && (!strcmp(what, "b") || !strcmp(what, "c")));
   if(!IS_GB && !IS_RAB && ISINST(pl->line, "in"))
     return(!strstr(strchr(pl->line + 4, ','), "(c)") && !strcmp(what, "a") || strstr(strchr(pl->line + 4, ','), "(c)") && (!strcmp(what, "b") || !strcmp(what, "c")));
+  //TODO: handle in/out aka ldh
 
   if(!IS_GB && !IS_RAB &&
     (ISINST(pl->line, "ini") || ISINST(pl->line, "ind") || ISINST(pl->line, "inir") || ISINST(pl->line, "indr") ||
@@ -512,7 +544,9 @@ z80MightRead(const lineNode *pl, const char *what)
   /* TODO: Can we know anything about rst? */
   if(ISINST(pl->line, "rst"))
     return(true);
-
+  //TODO: what about STOP?
+  //TODO: what about HALT?
+  //TODO: what about SCF?
   return(true);
 }
 
