@@ -205,6 +205,8 @@ findLabel (const lineNode *pl)
 }
 
 /* Check if reading arg implies reading what. */
+// TODO: think this lacks handling of (hl+)/(hl-)
+//TODO: gbz80 compatible
 static bool argCont(const char *arg, const char *what)
 {
   wassert (arg);
@@ -215,7 +217,10 @@ static bool argCont(const char *arg, const char *what)
   if (arg[0] == '#')
     return false;
 
-  if(arg[0] == '(' && arg[1] && arg[2] && (arg[2] != ')' && arg[3] != ')'))
+  // if not (a) and (bc) ??
+  // for (hl+) it should also check arg[4] != ')'? or (arg[3] == '-' || arg[3] == '+') to not break other platforms
+  // this should handle (hl+)/(hl-)
+  if(arg[0] == '(' && arg[1] && arg[2] && (arg[2] != ')' && arg[3] != ')') && !((arg[3] == '-' || arg[3] == '+') && arg[4] == ')'))
     return FALSE;
 
   if(*arg == '(')
@@ -231,6 +236,7 @@ static bool argCont(const char *arg, const char *what)
   return(found && found < end);
 }
 
+// what about a?
 static bool
 z80MightBeParmInCallFromCurrentFunction(const char *what)
 {
@@ -275,7 +281,7 @@ z80MightRead(const lineNode *pl, const char *what)
       if (f)
       {
         const value *args = FUNC_ARGS (f->type);
-
+        // fast call not supported on gbz80, but why?
         if (IFFUNC_ISZ88DK_FASTCALL (f->type) && args) // Has one register argument of size up to 32 bit.
           {
             const unsigned int size = getSize (args->type);
@@ -294,13 +300,16 @@ z80MightRead(const lineNode *pl, const char *what)
       else // Fallback needed for calls through function pointers and for calls to literal addresses.
         return z80MightBeParmInCallFromCurrentFunction(what);
     }
-
+  //z80 has no reti? is this reti becaving like the one on gb?
+  //z80 it actually has in ED
+  //but why no isReturned(what)??
   if(ISINST(pl->line, "reti") || ISINST(pl->line, "retn"))
     return(false);
 
   if(ISINST(pl->line, "ret")) // --reserve-regs-iy uses ret in code gen for calls through function pointers
     return(IY_RESERVED ? isReturned(what) || z80MightBeParmInCallFromCurrentFunction(what) : isReturned(what));
 
+  // well we don’t have ex on gb anyways
   if(!strcmp(pl->line, "ex\t(sp), hl") || !strcmp(pl->line, "ex\t(sp),hl"))
     return(!strcmp(what, "h") || !strcmp(what, "l"));
   if(!strcmp(pl->line, "ex\t(sp), ix") || !strcmp(pl->line, "ex\t(sp),ix"))
@@ -309,6 +318,11 @@ z80MightRead(const lineNode *pl, const char *what)
     return(!!strstr(what, "iy"));
   if(!strcmp(pl->line, "ex\tde, hl") || !strcmp(pl->line, "ex\tde,hl"))
     return(!strcmp(what, "h") || !strcmp(what, "l") || !strcmp(what, "d") || !strcmp(what, "e"));
+  //TODO: have to go through this, might have to handle (hl+)/(hl-)
+  // I think it properly handles them already, since hl gits definitely read here
+  // but is strstr(pl->line + 3, what) compatible?
+  // I think so (standard c function)
+  // we have to dive into argCont, the second if just handles ld (hl+),a ,but not ld a,(hl+)
   if(ISINST(pl->line, "ld"))
     {
       if(argCont(strchr(pl->line, ','), what))
