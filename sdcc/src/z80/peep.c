@@ -143,6 +143,7 @@ isReturned(const char *what)
 /* incLabelJmpToCount - increment counter "jmpToCount" in entry    */
 /* of the list labelHash                                           */
 /*-----------------------------------------------------------------*/
+//TODO: gbz80 compatible
 static bool
 incLabelJmpToCount (const char *label)
 {
@@ -581,7 +582,7 @@ z80SurelyWrites(const lineNode *pl, const char *what)
     what = "iy";
   if(strcmp(what, "ixl") == 0 || strcmp(what, "ixh") == 0)
     what = "ix";
-
+  //looks good
   if(ISINST(pl->line, "xor") && strcmp(what, "a") == 0)
     return(true);
   if(ISINST(pl->line, "ld") && strncmp(pl->line + 3, "hl", 2) == 0 && (what[0] == 'h' || what[0] == 'l'))
@@ -590,11 +591,15 @@ z80SurelyWrites(const lineNode *pl, const char *what)
     return(true);
   if(ISINST(pl->line, "ld") && strncmp(pl->line + 3, "bc", 2) == 0 && (what[0] == 'b' || what[0] == 'c'))
     return(true);
+  //TODO: what about  ld sp, d16 and ld sp, hl
+  //why in? right it can write to a
   if((ISINST(pl->line, "ld") || ISINST(pl->line, "in"))
     && strncmp(pl->line + 3, what, strlen(what)) == 0 && pl->line[3 + strlen(what)] == ',')
     return(true);
+  // looks fine
   if(ISINST(pl->line, "pop") && strstr(pl->line + 4, what))
     return(true);
+  // I think this works
   if(ISINST(pl->line, "call") && strchr(pl->line, ',') == 0)
     {
       const symbol *f = findSym (SymbolTab, 0, pl->line + 6);
@@ -623,8 +628,10 @@ z80SurelyWrites(const lineNode *pl, const char *what)
       if(!strcmp(what, "iy"))
         return !preserved_regs[IYL_IDX] && !preserved_regs[IYH_IDX];
     }
+  // caller restores or sth like that
   if(strcmp(pl->line, "ret") == 0)
     return true;
+  //don't need that on gb
   if(strcmp(pl->line, "ld\tiy")  == 0 && strncmp(what, "iy", 2) == 0)
     return true;
 
@@ -646,6 +653,8 @@ z80SurelyWrites(const lineNode *pl, const char *what)
     
   if (IS_EZ80_Z80 && ISINST(pl->line, "lea"))
     return (strstr(pl->line + 4, what));
+  
+  //TODO: look whether commands are missing
 
   return(false);
 }
@@ -877,7 +886,7 @@ isRegPair(const char *what)
 //   -> isReturned()
 //  -> z80UncondJump()
 //  -> findLabel()
-//   -> incLabelJmpToCount()
+//   -> incLabelJmpToCount() -|
 //  -> z80CondJump()
 //  -> z80SurelyWrites()
 //   -> ISINST() [and the others also] -|
