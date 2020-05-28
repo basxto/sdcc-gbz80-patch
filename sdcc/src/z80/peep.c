@@ -548,7 +548,7 @@ z80MightRead(const lineNode *pl, const char *what)
     return(true);
   //TODO: what about STOP?
   //TODO: what about HALT?
-  //TODO: what about SCF?
+  //TODO: what about DAA?
   return(true);
 }
 
