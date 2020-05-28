@@ -124,6 +124,7 @@ isReturned(const char *what)
       size = 4;
     }
 
+  //TODO: must be done differently on gbz80
   switch(*what)
     {
     case 'd':
@@ -583,8 +584,10 @@ z80SurelyWrites(const lineNode *pl, const char *what)
   if(strcmp(what, "ixl") == 0 || strcmp(what, "ixh") == 0)
     what = "ix";
   //looks good
+  // TODO:: wait . is this actually just "xor a"? what about "xor a, a"
   if(ISINST(pl->line, "xor") && strcmp(what, "a") == 0)
     return(true);
+  //TODO: shouldn’t we treat "sub a, a" the same as "xor a"? and "and a, #0" "or a, #0xff" as well as subc
   if(ISINST(pl->line, "ld") && strncmp(pl->line + 3, "hl", 2) == 0 && (what[0] == 'h' || what[0] == 'l'))
     return(true);
   if(ISINST(pl->line, "ld") && strncmp(pl->line + 3, "de", 2) == 0 && (what[0] == 'd' || what[0] == 'e'))
@@ -593,6 +596,8 @@ z80SurelyWrites(const lineNode *pl, const char *what)
     return(true);
   //TODO: what about  ld sp, d16 and ld sp, hl
   //why in? right it can write to a
+  // this handles r8
+  //TODO: ldi ldd ldh are missing for a
   if((ISINST(pl->line, "ld") || ISINST(pl->line, "in"))
     && strncmp(pl->line + 3, what, strlen(what)) == 0 && pl->line[3 + strlen(what)] == ',')
     return(true);
@@ -654,7 +659,6 @@ z80SurelyWrites(const lineNode *pl, const char *what)
   if (IS_EZ80_Z80 && ISINST(pl->line, "lea"))
     return (strstr(pl->line + 4, what));
   
-  //TODO: look whether commands are missing
 
   return(false);
 }
