@@ -125,19 +125,39 @@ isReturned(const char *what)
     }
 
   //TODO: must be done differently on gbz80
-  switch(*what)
-    {
-    case 'd':
-      return(size >= 4);
-    case 'e':
-      return(size >= 3);
-    case 'h':
-      return(size >= 2);
-    case 'l':
-      return(size >= 1);
-    default:
-      return FALSE;
-    }
+  if(!IS_GB)
+  {
+    switch(*what)
+      {
+      case 'd':
+        return(size >= 4);
+      case 'e':
+        return(size >= 3);
+      case 'h':
+        return(size >= 2);
+      case 'l':
+        return(size >= 1);
+      default:
+        return FALSE;
+      }
+  }
+  else
+  {
+    switch(*what)
+      {
+      case 'h':
+        return(size >= 4);
+      case 'l':
+        return(size >= 3);
+      case 'd':
+        return(size >= 2);
+      case 'e':
+        return(size >= 1);
+      default:
+        return FALSE;
+      }
+  }
+  
 }
 
 /*-----------------------------------------------------------------*/
@@ -261,7 +281,9 @@ z80MightBeParmInCallFromCurrentFunction(const char *what)
   return FALSE;
 }
 
-//TODO: implement missing STOP, HALT, SCF, ADD SP?, JP (HL), IN/OUT/LDH and fix ldd/ldi
+//TODO: implement missing ADD SP?, JP (HL)
+//TODO: we should ignore bugs from z80 at first
+//TODO: also ignore sp and flags at first
 //fully read through and made notes
 static bool
 z80MightRead(const lineNode *pl, const char *what)
@@ -443,7 +465,8 @@ z80MightRead(const lineNode *pl, const char *what)
   if(ISINST(pl->line, "rlca") ||
      ISINST(pl->line, "rla")  ||
      ISINST(pl->line, "rrca") ||
-     ISINST(pl->line, "rra"))
+     ISINST(pl->line, "rra")  ||
+     ISINST(pl->line, "daa"))
     {
       return(strcmp(what, "a") == 0);
     }
@@ -480,8 +503,10 @@ z80MightRead(const lineNode *pl, const char *what)
       return(argCont(strchr(pl->line + 4, ','), what));
     }
 
- if(ISINST(pl->line, "ccf") ||
-    ISINST(pl->line, "nop"))
+ if(ISINST(pl->line, "ccf")  ||
+    ISINST(pl->line, "nop")  ||
+    ISINST(pl->line, "stop") ||
+    ISINST(pl->line, "halt"))
     return(false);
 
   //TODO: but what about jp (hl)?
@@ -494,9 +519,9 @@ z80MightRead(const lineNode *pl, const char *what)
   // I guess the ldd is working differently on gb?
   if(!IS_GB && (ISINST(pl->line, "ldd") || ISINST(pl->line, "lddr") || ISINST(pl->line, "ldi") || ISINST(pl->line, "ldir")))
     return(strchr("bcdehl", *what));
-  //TODO: ldd (hl),a isn't handled properly yet
+  // right hand can be A
   if(IS_GB && (ISINST(pl->line, "ldd") || ISINST(pl->line, "ldi")))
-    return(strchr("hl", *what));
+    return(strchr("hl", *what) || strstr(strchr(pl->line + 4, ','), what) != 0);
 
   if(!IS_GB && !IS_RAB && (ISINST(pl->line, "cpd") || ISINST(pl->line, "cpdr") || ISINST(pl->line, "cpi") || ISINST(pl->line, "cpir")))
     return(strchr("abchl", *what));
@@ -504,8 +529,11 @@ z80MightRead(const lineNode *pl, const char *what)
   if(!IS_GB && !IS_RAB && ISINST(pl->line, "out"))
     return(strstr(strchr(pl->line + 4, ','), what) != 0 || strstr(pl->line + 4, "(c)") && (!strcmp(what, "b") || !strcmp(what, "c")));
   if(!IS_GB && !IS_RAB && ISINST(pl->line, "in"))
+    // why +4
     return(!strstr(strchr(pl->line + 4, ','), "(c)") && !strcmp(what, "a") || strstr(strchr(pl->line + 4, ','), "(c)") && (!strcmp(what, "b") || !strcmp(what, "c")));
-  //TODO: handle in/out aka ldh
+  // out/in is an alias for ldh
+  if(IS_GB && (ISINST(pl->line, "out") || ISINST(pl->line, "ldh") || ISINST(pl->line, "in")))
+    return(strstr(strchr(pl->line + 3, ','), what) != 0 || (!strcmp(what, "c") && strstr(pl->line + 3, "(c)")));
 
   if(!IS_GB && !IS_RAB &&
     (ISINST(pl->line, "ini") || ISINST(pl->line, "ind") || ISINST(pl->line, "inir") || ISINST(pl->line, "indr") ||
@@ -546,9 +574,6 @@ z80MightRead(const lineNode *pl, const char *what)
   /* TODO: Can we know anything about rst? */
   if(ISINST(pl->line, "rst"))
     return(true);
-  //TODO: what about STOP?
-  //TODO: what about HALT?
-  //TODO: what about DAA?
   return(true);
 }
 
@@ -861,6 +886,7 @@ isRegPair(const char *what)
     return TRUE;
   if(strcmp(what, "hl") == 0)
     return TRUE;
+  //TODO: this should be commented out until it’s properly supported
   if(strcmp(what, "sp") == 0)
     return TRUE;
   if(strcmp(what, "ix") == 0)
