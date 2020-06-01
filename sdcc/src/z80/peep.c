@@ -622,11 +622,14 @@ z80SurelyWrites(const lineNode *pl, const char *what)
   //TODO: what about  ld sp, d16 and ld sp, hl
   //why in? right it can write to a
   // this handles r8
-  //TODO: ldi ldd ldh are missing for a
   if((ISINST(pl->line, "ld") || ISINST(pl->line, "in"))
     && strncmp(pl->line + 3, what, strlen(what)) == 0 && pl->line[3 + strlen(what)] == ',')
     return(true);
   // looks fine
+  // catch write to A
+  if(IS_GB && (ISINST(pl->line, "ldd") || ISINST(pl->line, "ldi") || ISINST(pl->line, "ldh")))
+    return(strncmp(pl->line + 4, what, strlen(what)) == 0);
+  
   if(ISINST(pl->line, "pop") && strstr(pl->line + 4, what))
     return(true);
   // I think this works
