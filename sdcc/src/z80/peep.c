@@ -924,6 +924,8 @@ isRegPair(const char *what)
 //  -> z80SurelyWrites()
 //   -> ISINST() [and the others also] -|
 //  -> z80SurelyReturns()
+//TODO: af must be split int a and f and f must be split into zf, nf, hf and cf
+//TODO: zf, nf, hf and cf could be used as flag names
 bool
 z80notUsed (const char *what, lineNode *endPl, lineNode *head)
 {
@@ -981,6 +983,7 @@ z80notUsedFrom (const char *what, const char *label, lineNode *head)
   return false;
 }
 
+//TODO: this should be reworked for gbz80 because of (hl+) and (hl-)
 bool
 z80canAssign (const char *op1, const char *op2, const char *exotic)
 {
