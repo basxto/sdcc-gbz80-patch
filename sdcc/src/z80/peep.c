@@ -686,7 +686,13 @@ z80SurelyWrites(const lineNode *pl, const char *what)
     
   if (IS_EZ80_Z80 && ISINST(pl->line, "lea"))
     return (strstr(pl->line + 4, what));
-  
+
+  //weird alias from asgb, which always reads from SP
+  if (IS_GB && ISINST(pl->line, "lda") && strncmp(pl->line + 4, "hl", 2) == 0 && (what[0] == 'h' || what[0] == 'l'))
+    return(true);
+
+  if (IS_GB && ISINST(pl->line, "ldhl") && (what[0] == 'h' || what[0] == 'l'))
+    return(true);
 
   return(false);
 }
