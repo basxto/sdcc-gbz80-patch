@@ -37,7 +37,6 @@
 #define D(_s)
 #endif
 
-//TODO: gbz80 compatible
 #define ISINST(l, i) (!STRNCASECMP((l), (i), sizeof(i) - 1) && (!(l)[sizeof(i) - 1] || isspace((unsigned char)((l)[sizeof(i) - 1]))))
 
 typedef enum
@@ -63,7 +62,6 @@ extern bool z80_regs_preserved_in_calls_from_current_function[IYH_IDX + 1];
 /*-----------------------------------------------------------------*/
 /* univisitLines - clear "visited" flag in all lines               */
 /*-----------------------------------------------------------------*/
-//TODO: gbz80 compatible
 static void
 unvisitLines (lineNode *pl)
 {
@@ -124,7 +122,6 @@ isReturned(const char *what)
       size = 4;
     }
 
-  //TODO: must be done differently on gbz80
   if(!IS_GB)
   {
     switch(*what)
@@ -157,14 +154,12 @@ isReturned(const char *what)
         return FALSE;
       }
   }
-  
 }
 
 /*-----------------------------------------------------------------*/
 /* incLabelJmpToCount - increment counter "jmpToCount" in entry    */
 /* of the list labelHash                                           */
 /*-----------------------------------------------------------------*/
-//TODO: gbz80 compatible
 static bool
 incLabelJmpToCount (const char *label)
 {
@@ -183,7 +178,6 @@ incLabelJmpToCount (const char *label)
 /* 2. increment "label jump-to count" in labelHash                 */
 /* 3. search lineNode with label definition and return it          */
 /*-----------------------------------------------------------------*/
-//TODO: gbz80 compatible
 static lineNode *
 findLabel (const lineNode *pl)
 {
@@ -227,9 +221,6 @@ findLabel (const lineNode *pl)
 }
 
 /* Check if reading arg implies reading what. */
-// TODO: think this lacks handling of (hl+)/(hl-)
-// appears to read the second parameter
-//TODO: gbz80 compatible
 static bool argCont(const char *arg, const char *what)
 {
   wassert (arg);
@@ -240,9 +231,6 @@ static bool argCont(const char *arg, const char *what)
   if (arg[0] == '#')
     return false;
 
-  // if not (a) and (bc) ??
-  // for (hl+) it should also check arg[4] != ')'? or (arg[3] == '-' || arg[3] == '+') to not break other platforms
-  // this should handle (hl+)/(hl-)
   if(arg[0] == '(' && arg[1] && arg[2] && (arg[2] != ')' && arg[3] != ')') && !(IS_GB && (arg[3] == '-' || arg[3] == '+') && arg[4] == ')'))
     return FALSE;
 
@@ -259,7 +247,6 @@ static bool argCont(const char *arg, const char *what)
   return(found && found < end);
 }
 
-// what about a?
 static bool
 z80MightBeParmInCallFromCurrentFunction(const char *what)
 {
@@ -281,10 +268,6 @@ z80MightBeParmInCallFromCurrentFunction(const char *what)
   return FALSE;
 }
 
-//TODO: implement missing ADD SP?, JP (HL)
-//TODO: we should ignore bugs from z80 at first
-//TODO: also ignore sp and flags at first
-//fully read through and made notes
 static bool
 z80MightRead(const lineNode *pl, const char *what)
 {
@@ -308,7 +291,7 @@ z80MightRead(const lineNode *pl, const char *what)
       if (f)
       {
         const value *args = FUNC_ARGS (f->type);
-        // fast call not supported on gbz80, but why?
+
         if (IFFUNC_ISZ88DK_FASTCALL (f->type) && args) // Has one register argument of size up to 32 bit.
           {
             const unsigned int size = getSize (args->type);
@@ -327,16 +310,13 @@ z80MightRead(const lineNode *pl, const char *what)
       else // Fallback needed for calls through function pointers and for calls to literal addresses.
         return z80MightBeParmInCallFromCurrentFunction(what);
     }
-  //z80 has no reti? is this reti becaving like the one on gb?
-  //z80 it actually has in ED
-  //but why no isReturned(what)??
+
   if(ISINST(pl->line, "reti") || ISINST(pl->line, "retn"))
     return(false);
 
   if(ISINST(pl->line, "ret")) // --reserve-regs-iy uses ret in code gen for calls through function pointers
     return(IY_RESERVED ? isReturned(what) || z80MightBeParmInCallFromCurrentFunction(what) : isReturned(what));
 
-  // well we don’t have ex on gb anyways
   if(!strcmp(pl->line, "ex\t(sp), hl") || !strcmp(pl->line, "ex\t(sp),hl"))
     return(!strcmp(what, "h") || !strcmp(what, "l"));
   if(!strcmp(pl->line, "ex\t(sp), ix") || !strcmp(pl->line, "ex\t(sp),ix"))
@@ -345,18 +325,10 @@ z80MightRead(const lineNode *pl, const char *what)
     return(!!strstr(what, "iy"));
   if(!strcmp(pl->line, "ex\tde, hl") || !strcmp(pl->line, "ex\tde,hl"))
     return(!strcmp(what, "h") || !strcmp(what, "l") || !strcmp(what, "d") || !strcmp(what, "e"));
-  //~~TODO: have to go through this, might have to handle (hl+)/(hl-)~~
-  // I think it properly handles them already, since hl gits definitely read here
-  // but is strstr(pl->line + 3, what) compatible?
-  // I think so (standard c function)
-  // we have to dive into argCont, the second if just handles ld (hl+),a ,but not ld a,(hl+)
   if(ISINST(pl->line, "ld"))
     {
-      // right argument
       if(argCont(strchr(pl->line, ','), what))
         return(true);
-      // left argument
-      // this catches ld (r16), stuff as well as ld (hl+), and ld (hl-),
       if(*(strchr(pl->line, ',') - 1) == ')' && strstr(pl->line + 3, what) && (strchr(pl->line, '#') == 0 || strchr(pl->line, '#') > strchr(pl->line, ',')))
         return(true);
       return(false);
@@ -375,8 +347,6 @@ z80MightRead(const lineNode *pl, const char *what)
       const char *arg = pl->line + 4;
       while(isspace(*arg))
         arg++;
-      //yes
-      //only reg possible on left hand
       if(arg[0] == 'a' && arg[1] == ',')
         {
           if(!strcmp(what, "a"))
@@ -395,16 +365,12 @@ z80MightRead(const lineNode *pl, const char *what)
             return(true);
           arg += 3;
         }
-      //only 16bit one possilbe on left hand ... and only with add
-      //TODO: SP is missing
-      // I guess it does not get used with notUsed
       else if(!strncmp(arg, "hl", 2) && arg[2] == ',') // add hl, rr
         {
           if(!strcmp(what, "h") || !strcmp(what, "l"))
             return(true);
           arg += 3;
         }
-      //don't have that on gb
       else if(arg[0] == 'i') // add ix/y, rr
         {
           if(!strncmp(arg, what, 2))
@@ -414,7 +380,6 @@ z80MightRead(const lineNode *pl, const char *what)
       return(argCont(arg, what));
     }
 
-  // we just have a as left argument, it’s fine
   if(ISINST(pl->line, "or") || ISINST(pl->line, "cp") )
     {
       const char *arg = pl->line + 3;
@@ -434,33 +399,28 @@ z80MightRead(const lineNode *pl, const char *what)
         }
       return(argCont(arg, what));
     }
-  // don’t have that on gb
+
   if(ISINST(pl->line, "neg"))
     return(strcmp(what, "a") == 0);
-  // looks fine
+
   if(ISINST(pl->line, "pop"))
     return(false);
-  // looks fine
+
   if(ISINST(pl->line, "push"))
     return(strstr(pl->line + 5, what) != 0);
 
-  // TODO: what’s with SP?
-  // I guess it does not get used with notUsed
   if(ISINST(pl->line, "dec") ||
      ISINST(pl->line, "inc"))
     {
       return(argCont(pl->line + 4, what));
     }
-  //fine
+
   if(ISINST(pl->line, "cpl"))
     return(!strcmp(what, "a"));
-  //fine
+
   if(ISINST(pl->line, "di") || ISINST(pl->line, "ei"))
     return(false);
-  //TODO: belongs swap here?
-  //nope swap should call argCont
 
-  // fine
   // Rotate and shift group
   if(ISINST(pl->line, "rlca") ||
      ISINST(pl->line, "rla")  ||
@@ -475,7 +435,6 @@ z80MightRead(const lineNode *pl, const char *what)
     {
       return(argCont(pl->line + 3, what));
     }
-  //TODO: what about RRC
   if(ISINST(pl->line, "rlc") ||
      ISINST(pl->line, "sla") ||
      ISINST(pl->line, "rrc") ||
@@ -484,7 +443,6 @@ z80MightRead(const lineNode *pl, const char *what)
     {
       return(argCont(pl->line + 4, what));
     }
-  //TODO: right position?
   if(IS_GB && ISINST(pl->line, "swap"))
     {
       return(argCont(pl->line + 5, what));
@@ -494,7 +452,6 @@ z80MightRead(const lineNode *pl, const char *what)
      ISINST(pl->line, "rrd")))
     return(!!strstr("ahl", what));
 
-  // looks fine
   // Bit set, reset and test group
   if(ISINST(pl->line, "bit") ||
      ISINST(pl->line, "set") ||
@@ -509,17 +466,14 @@ z80MightRead(const lineNode *pl, const char *what)
     ISINST(pl->line, "halt"))
     return(false);
 
-  //TODO: but what about jp (hl)?
   if(ISINST(pl->line, "jp") || ISINST(pl->line, "jr"))
     return(false);
-  // don't have that on gb
+
   if(ISINST(pl->line, "djnz"))
     return(strchr(what, 'b') != 0);
 
-  // I guess the ldd is working differently on gb?
   if(!IS_GB && (ISINST(pl->line, "ldd") || ISINST(pl->line, "lddr") || ISINST(pl->line, "ldi") || ISINST(pl->line, "ldir")))
     return(strchr("bcdehl", *what));
-  // right hand can be A
   if(IS_GB && (ISINST(pl->line, "ldd") || ISINST(pl->line, "ldi")))
     return(strchr("hl", *what) || strstr(strchr(pl->line + 4, ','), what) != 0);
 
@@ -529,9 +483,8 @@ z80MightRead(const lineNode *pl, const char *what)
   if(!IS_GB && !IS_RAB && ISINST(pl->line, "out"))
     return(strstr(strchr(pl->line + 4, ','), what) != 0 || strstr(pl->line + 4, "(c)") && (!strcmp(what, "b") || !strcmp(what, "c")));
   if(!IS_GB && !IS_RAB && ISINST(pl->line, "in"))
-    // why +4
     return(!strstr(strchr(pl->line + 4, ','), "(c)") && !strcmp(what, "a") || strstr(strchr(pl->line + 4, ','), "(c)") && (!strcmp(what, "b") || !strcmp(what, "c")));
-  // out/in is an alias for ldh
+
   if(IS_GB && (ISINST(pl->line, "out") || ISINST(pl->line, "ldh") || ISINST(pl->line, "in")))
     return(strstr(strchr(pl->line + 3, ','), what) != 0 || (!strcmp(what, "c") && strstr(pl->line + 3, "(c)")));
 
@@ -577,9 +530,6 @@ z80MightRead(const lineNode *pl, const char *what)
   return(true);
 }
 
-//TODO: gbz80 compatible
-// JP HL, JP n16, PR e8
-// TODO: maybe we have to handle JP HL somehow which is jp (hl) here
 static bool
 z80UncondJump(const lineNode *pl)
 {
@@ -589,8 +539,6 @@ z80UncondJump(const lineNode *pl)
   return FALSE;
 }
 
-//TODO: gbz80 compatible
-// JP cc, n16, JR cc, e8
 static bool
 z80CondJump(const lineNode *pl)
 {
@@ -608,31 +556,24 @@ z80SurelyWrites(const lineNode *pl, const char *what)
     what = "iy";
   if(strcmp(what, "ixl") == 0 || strcmp(what, "ixh") == 0)
     what = "ix";
-  //looks good
-  // TODO:: wait . is this actually just "xor a"? what about "xor a, a"
+
   if(ISINST(pl->line, "xor") && strcmp(what, "a") == 0)
     return(true);
-  //TODO: shouldn’t we treat "sub a, a" the same as "xor a"? and "and a, #0" "or a, #0xff" as well as subc
   if(ISINST(pl->line, "ld") && strncmp(pl->line + 3, "hl", 2) == 0 && (what[0] == 'h' || what[0] == 'l'))
     return(true);
   if(ISINST(pl->line, "ld") && strncmp(pl->line + 3, "de", 2) == 0 && (what[0] == 'd' || what[0] == 'e'))
     return(true);
   if(ISINST(pl->line, "ld") && strncmp(pl->line + 3, "bc", 2) == 0 && (what[0] == 'b' || what[0] == 'c'))
     return(true);
-  //TODO: what about  ld sp, d16 and ld sp, hl
-  //why in? right it can write to a
-  // this handles r8
   if((ISINST(pl->line, "ld") || ISINST(pl->line, "in"))
     && strncmp(pl->line + 3, what, strlen(what)) == 0 && pl->line[3 + strlen(what)] == ',')
     return(true);
-  // looks fine
-  // catch write to A
+
   if(IS_GB && (ISINST(pl->line, "ldd") || ISINST(pl->line, "ldi") || ISINST(pl->line, "ldh")))
     return(strncmp(pl->line + 4, what, strlen(what)) == 0);
-  
+
   if(ISINST(pl->line, "pop") && strstr(pl->line + 4, what))
     return(true);
-  // I think this works
   if(ISINST(pl->line, "call") && strchr(pl->line, ',') == 0)
     {
       const symbol *f = findSym (SymbolTab, 0, pl->line + 6);
@@ -661,10 +602,8 @@ z80SurelyWrites(const lineNode *pl, const char *what)
       if(!strcmp(what, "iy"))
         return !preserved_regs[IYL_IDX] && !preserved_regs[IYH_IDX];
     }
-  // caller restores or sth like that
   if(strcmp(pl->line, "ret") == 0)
     return true;
-  //don't need that on gb
   if(strcmp(pl->line, "ld\tiy")  == 0 && strncmp(what, "iy", 2) == 0)
     return true;
 
@@ -687,7 +626,6 @@ z80SurelyWrites(const lineNode *pl, const char *what)
   if (IS_EZ80_Z80 && ISINST(pl->line, "lea"))
     return (strstr(pl->line + 4, what));
 
-  //weird alias from asgb, which always reads from SP
   if (IS_GB && ISINST(pl->line, "lda") && strncmp(pl->line + 4, "hl", 2) == 0 && (what[0] == 'h' || what[0] == 'l'))
     return(true);
 
@@ -697,8 +635,6 @@ z80SurelyWrites(const lineNode *pl, const char *what)
   return(false);
 }
 
-//TODO: gbz80 compatible
-// this matches ret, ret cc and reti
 static bool
 z80SurelyReturns(const lineNode *pl)
 {
@@ -743,7 +679,6 @@ z80SurelyReturns(const lineNode *pl)
 /*    S4O_TERM                                                     */
 /*       acall, lcall, ret and reti "terminate" a scan.            */
 /*-----------------------------------------------------------------*/
-//TODO: gbz80 compatible
 static S4O_RET
 scan4op (lineNode **pl, const char *what, const char *untilOp,
          lineNode **plCond)
@@ -818,7 +753,6 @@ scan4op (lineNode **pl, const char *what, const char *untilOp,
 /* - action required on different return values                    */
 /* - recursion in case of conditional branches                     */
 /*-----------------------------------------------------------------*/
-//TODO: gbz80 compatible
 static bool
 doTermScan (lineNode **pl, const char *what)
 {
@@ -852,7 +786,6 @@ doTermScan (lineNode **pl, const char *what)
 }
 
 /* Regular 8 bit reg */
-//TODO: gbz80 compatible
 static bool
 isReg(const char *what)
 {
@@ -873,7 +806,6 @@ isReg(const char *what)
 }
 
 /* 8-Bit reg only accessible by 16-bit and undocumented instructions */
-//TODO: gbz80 compatible since we don't need it
 static bool
 isUReg(const char *what)
 {
@@ -895,43 +827,17 @@ isRegPair(const char *what)
     return TRUE;
   if(strcmp(what, "hl") == 0)
     return TRUE;
-  //TODO: this should be commented out until it’s properly supported
   if(strcmp(what, "sp") == 0)
     return TRUE;
   if(strcmp(what, "ix") == 0)
     return TRUE;
   if(strcmp(what, "iy") == 0)
     return TRUE;
-  //TODO: what about af?
-  //it probably gets ignored because flags are tricky
   return FALSE;
 }
 
 /* Check that what is never read after endPl. */
-//TODO: gbz80 compatible
-//on gbz80 we just don’t care about iy and ix since we won't get it as input
-//all compatible functions get marked with the TODO above, calls to other functions don't matter
 
-//z80notUsed
-//-> isRegPair() -|
-//-> isReg() -|
-//-> isUReg() -|
-//-> unvisitLines()
-//-> doTermScan()
-// -> scan4op()
-//  -> z80MightRead() [longest and most important]
-//   -> z80MightBeParmInCallFromCurrentFunction()
-//   -> argCont()
-//   -> isReturned()
-//  -> z80UncondJump()
-//  -> findLabel()
-//   -> incLabelJmpToCount() -|
-//  -> z80CondJump()
-//  -> z80SurelyWrites()
-//   -> ISINST() [and the others also] -|
-//  -> z80SurelyReturns()
-//TODO: af must be split int a and f and f must be split into zf, nf, hf and cf
-//TODO: zf, nf, hf and cf could be used as flag names
 bool
 z80notUsed (const char *what, lineNode *endPl, lineNode *head)
 {
@@ -989,7 +895,6 @@ z80notUsedFrom (const char *what, const char *label, lineNode *head)
   return false;
 }
 
-//TODO: this should be reworked for gbz80 because of (hl+) and (hl-)
 bool
 z80canAssign (const char *op1, const char *op2, const char *exotic)
 {
