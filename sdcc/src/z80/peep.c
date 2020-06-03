@@ -231,7 +231,8 @@ static bool argCont(const char *arg, const char *what)
   if (arg[0] == '#')
     return false;
 
-  if(arg[0] == '(' && arg[1] && arg[2] && (arg[2] != ')' && arg[3] != ')') && !(IS_GB && (arg[3] == '-' || arg[3] == '+') && arg[4] == ')'))
+  if(arg[0] == '(' && arg[1] && arg[2] && (arg[2] != ')' && arg[3] != ')')
+     && !(IS_GB && (arg[3] == '-' || arg[3] == '+') && arg[4] == ')'))
     return FALSE;
 
   if(*arg == '(')
@@ -462,8 +463,8 @@ z80MightRead(const lineNode *pl, const char *what)
 
  if(ISINST(pl->line, "ccf")  ||
     ISINST(pl->line, "nop")  ||
-    ISINST(pl->line, "stop") ||
-    ISINST(pl->line, "halt"))
+    ISINST(pl->line, "halt") ||
+    (IS_GB && ISINST(pl->line, "stop")))
     return(false);
 
   if(ISINST(pl->line, "jp") || ISINST(pl->line, "jr"))
