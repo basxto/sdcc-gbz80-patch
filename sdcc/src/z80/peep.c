@@ -855,8 +855,6 @@ isRegPair(const char *what)
     return TRUE;
   if(strcmp(what, "hl") == 0)
     return TRUE;
-  if(strcmp(what, "sp") == 0)
-    return TRUE;
   if(strcmp(what, "ix") == 0)
     return TRUE;
   if(strcmp(what, "iy") == 0)
@@ -968,16 +966,20 @@ z80canAssign (const char *op1, const char *op2, const char *exotic)
     return TRUE;
 
   // Can load immediate values directly into registers and register pairs.
-  if((isReg(dst) || isRegPair(dst)) && src[0] == '#')
+  if((isReg(dst) || isRegPair(dst) || !strcmp(src, "sp")) && src[0] == '#')
     return TRUE;
 
-  if((!strcmp(dst, "a") || isRegPair(dst)) && !strncmp(src, "(#", 2))
+  if((!strcmp(dst, "a") || (!IS_GB && (isRegPair(dst) || !strcmp(src, "sp")))) && !strncmp(src, "(#", 2))
     return TRUE;
-  if(!strncmp(dst, "(#", 2) && (!strcmp(src, "a") || isRegPair(src)))
+  if(!strncmp(dst, "(#", 2) && (!strcmp(src, "a") || (!IS_GB && isRegPair(src)) || !strcmp(src, "sp")))
     return TRUE;
 
   // Can load immediate values directly into (hl).
   if(!strcmp(dst, "(hl)") && src[0] == '#')
+    return TRUE;
+
+  // Can load hl into sp
+  if(!strcmp(dst, "sp") && !strcmp(src, "hl"))
     return TRUE;
 
   return FALSE;
