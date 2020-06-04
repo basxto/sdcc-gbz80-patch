@@ -25,7 +25,7 @@ replace{
 	ld	hl, #0xff%1
 	ld	a, (hl)
 } by {
-	; peephole 0a use ldh.
+	; peephole GB0a used ldh instead of ld a, (hl).
 	ldh	a, (#0xff%1)
 } if notUsed('hl')
 
@@ -33,7 +33,7 @@ replace{
 	ld	hl, #0xff%1
 	ld	(hl), a
 } by {
-	; peephole 0b use ldh.
+	; peephole GB0b used ldh instead of ld (hl), a.
 	ldh	(#0xff%1), a
 } if notUsed('hl')
 
@@ -47,13 +47,15 @@ replace restart {
 	ld	%1, %2
 } by {
 	; peephole 1b removed dead load from %2 into %1.
+	; based on Z80 peephole 1
 } if notVolatile(%1), notUsed(%1), notVolatile(%2), notSame(%2 '(hl+)' '(hl-)'), notSame(%1 '(hl+)' '(hl-)')
 
-replace restart{
+replace restart {
 	ld	%2, %1
 	ld	%3, %2
 } by {
-	; peephole 1c removed unused temporary register
+	; peephole 1c loaded %3 from %1 directly instead of going through %2.
+	; based on z80 peephole 9
 	ld	%3, %1
 } if notVolatile(%2), notUsed(%2), canAssign(%3 %1), notSame(%2 '(hl+)' '(hl-)')
 
@@ -296,6 +298,7 @@ replace restart {
 } by {
 	inc	(hl)
 	; peephole 26 incremented in (hl) instead of going through %1.
+	; based on Z80 peephole 115
 } if notUsed(%1)
 
 replace restart {
@@ -303,22 +306,23 @@ replace restart {
 	ld	%3, %1
 	push	%3%4
 } by {
-	; peephole 27a pushed %1%2 instead of %3%4.
+	; peephole 27a pushed %1%2 directly instead of going through %3%4.
+	; based on Z80 peephole 29
 	push	%1%2
 } if canAssign(%1%2 '#0x0102'), notUsed(%3%4)
 
 replace {
- ld	%1, %5
- push	%1%2
- inc	sp
- ld	%3, %6
- push	%3%4
- inc	sp
+	ld	%1, %5
+	push	%1%2
+	inc	sp
+	ld	%3, %6
+	push	%3%4
+	inc	sp
 } by {
- ; peephole 27b pushed bc instead of %1%2 and %3%4.
- ld c, %6
- ld b, %5
- push	bc
+	; peephole 27b pushed bc instead of %1%2 and %3%4.
+	ld c, %6
+	ld b, %5
+	push	bc
 } if notUsed('bc'), canAssign(%1 'b'), canAssign(%3 'b'), notUsed(%1), notUsed(%3), notSame(%5 'b' 'c' '(ld+)' '(ld-)'), notSame(%6 'b' 'c' '(ld+)' '(ld-)')
 
 replace restart {
