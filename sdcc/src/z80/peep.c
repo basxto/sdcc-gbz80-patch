@@ -959,10 +959,12 @@ z80canAssign (const char *op1, const char *op2, const char *exotic)
   if(!strcmp(dst, "(hl)") && isReg(src))
     return TRUE;
 
-  // Can assign between a and (bc), (de)
-  if(!strcmp(dst, "a") && (!strcmp(src, "(bc)") || ! strcmp(src, "(de)")))
+  // Can assign between a and (bc), (de), (hl+), (hl-)
+  if(!strcmp(dst, "a") &&
+     (!strcmp(src, "(bc)") || !strcmp(src, "(de)") || !strcmp(src, "(hl+)") || !strcmp(src, "(hl-)")))
     return TRUE;
-  if((!strcmp(dst, "(bc)") || ! strcmp(dst, "(de)")) && !strcmp(src, "a"))
+  if((!strcmp(dst, "(bc)") || !strcmp(dst, "(de)") || !strcmp(src, "(hl+)") || !strcmp(src, "(hl-)")
+     && !strcmp(src, "a"))
     return TRUE;
 
   // Can load immediate values directly into registers and register pairs.
