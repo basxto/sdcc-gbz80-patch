@@ -336,16 +336,16 @@ z80MightRead(const lineNode *pl, const char *what)
     }
 
   //ld a, #0x00
-  if((ISINST(pl->line, "xor") || (ISINST(pl->line, "sub")) &&
+  if((ISINST(pl->line, "xor") || (ISINST(pl->line, "sub")) && !strcmp(what, "a") &&
      (!strcmp(pl->line+4, "a, a") || !strcmp(pl->line+4, "a,a")))
     return(false);
 
   //ld a, #0x00
-  if(!strcmp(pl->line, "and\ta, #0x00") || !strcmp(pl->line, "and\ta,#0x00"))
+  if(!strcmp(what, "a") && (!strcmp(pl->line, "and\ta, #0x00") || !strcmp(pl->line, "and\ta,#0x00")))
     return(false);
 
   //ld a, #0xff
-  if(!strcmp(pl->line, "or\ta, #0xff") || !strcmp(pl->line, "or\ta,#0xff"))
+  if(!strcmp(what, "a") && (!strcmp(pl->line, "or\ta, #0xff") || !strcmp(pl->line, "or\ta,#0xff")))
     return(false);
 
   if(ISINST(pl->line, "adc") ||
@@ -569,16 +569,16 @@ z80SurelyWrites(const lineNode *pl, const char *what)
     what = "ix";
 
   //ld a, #0x00
-  if((ISINST(pl->line, "xor") || (ISINST(pl->line, "sub")) &&
+  if((ISINST(pl->line, "xor") || (ISINST(pl->line, "sub")) && !strcmp(what, "a") &&
      (!strcmp(pl->line+4, "a, a") || !strcmp(pl->line+4, "a,a")))
     return(true);
 
   //ld a, #0x00
-  if(!strcmp(pl->line, "and\ta, #0x00") || !strcmp(pl->line, "and\ta,#0x00"))
+  if(!strcmp(what, "a") && (!strcmp(pl->line, "and\ta, #0x00") || !strcmp(pl->line, "and\ta,#0x00")))
     return(true);
 
   //ld a, #0xff
-  if(!strcmp(pl->line, "or\ta, #0xff") || !strcmp(pl->line, "or\ta,#0xff"))
+  if(!strcmp(what, "a") && (!strcmp(pl->line, "or\ta, #0xff") || !strcmp(pl->line, "or\ta,#0xff")))
     return(true);
 
   if(ISINST(pl->line, "ld") && strncmp(pl->line + 3, "hl", 2) == 0 && (what[0] == 'h' || what[0] == 'l'))
