@@ -269,6 +269,7 @@ z80MightBeParmInCallFromCurrentFunction(const char *what)
   return FALSE;
 }
 
+//TODO: fully support sp
 static bool
 z80MightRead(const lineNode *pl, const char *what)
 {
@@ -276,6 +277,9 @@ z80MightRead(const lineNode *pl, const char *what)
     what = "iy";
   if(strcmp(what, "ixl") == 0 || strcmp(what, "ixh") == 0)
     what = "ix";
+
+  if(ISINST(pl->line, "call") && strcmp(what, "sp") == 0)
+    return TRUE;
 
   if(strcmp(pl->line, "call\t__initrleblock") == 0)
     return TRUE;
@@ -313,10 +317,10 @@ z80MightRead(const lineNode *pl, const char *what)
     }
 
   if(ISINST(pl->line, "reti") || ISINST(pl->line, "retn"))
-    return(false);
+    return(strcmp(what, "sp") == 0);
 
   if(ISINST(pl->line, "ret")) // --reserve-regs-iy uses ret in code gen for calls through function pointers
-    return(IY_RESERVED ? isReturned(what) || z80MightBeParmInCallFromCurrentFunction(what) : isReturned(what));
+    return(IY_RESERVED ? isReturned(what) || z80MightBeParmInCallFromCurrentFunction(what) : isReturned(what)) || strcmp(what, "sp") == 0;
 
   if(!strcmp(pl->line, "ex\t(sp), hl") || !strcmp(pl->line, "ex\t(sp),hl"))
     return(!strcmp(what, "h") || !strcmp(what, "l"));
@@ -415,10 +419,10 @@ z80MightRead(const lineNode *pl, const char *what)
     return(strcmp(what, "a") == 0);
 
   if(ISINST(pl->line, "pop"))
-    return(false);
+    return(strcmp(what, "sp") == 0);
 
   if(ISINST(pl->line, "push"))
-    return(strstr(pl->line + 5, what) != 0);
+    return(strstr(pl->line + 5, what) != 0 || strcmp(what, "sp") == 0);
 
   if(ISINST(pl->line, "dec") ||
      ISINST(pl->line, "inc"))
@@ -560,6 +564,7 @@ z80CondJump(const lineNode *pl)
   return FALSE;
 }
 
+//TODO: fully support sp
 static bool
 z80SurelyWrites(const lineNode *pl, const char *what)
 {
@@ -885,7 +890,8 @@ z80notUsed (const char *what, lineNode *endPl, lineNode *head)
       return(z80notUsed(low, endPl, head) && z80notUsed(high, endPl, head));
     }
 
-  if(!isReg(what) && !isUReg(what))
+  // enable sp only for GBZ80
+  if(!isReg(what) && !isUReg(what) && !(IS_GB && !strcmp(what, "sp")))
     return FALSE;
 
   _G.head = head;
