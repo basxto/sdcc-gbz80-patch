@@ -336,16 +336,16 @@ z80MightRead(const lineNode *pl, const char *what)
     }
 
   //ld a, #0x00
-  if((ISINST(pl->line, "xor") || (ISINST(pl->line, "sub")) && !strcmp(what, "a") &&
+  if((ISINST(pl->line, "xor") || (ISINST(pl->line, "sub")) &&
      (!strcmp(pl->line+4, "a, a") || !strcmp(pl->line+4, "a,a") || (!strchr(pl->line, ',') && !strcmp(pl->line+4, "a"))))
     return(false);
 
   //ld a, #0x00
-  if(!strcmp(what, "a") && (!strcmp(pl->line, "and\ta, #0x00") || !strcmp(pl->line, "and\ta,#0x00") || !strcmp(pl->line, "and\t#0x00")))
+  if(!strcmp(pl->line, "and\ta, #0x00") || !strcmp(pl->line, "and\ta,#0x00") || !strcmp(pl->line, "and\t#0x00"))
     return(false);
 
   //ld a, #0xff
-  if(!strcmp(what, "a") && (!strcmp(pl->line, "or\ta, #0xff") || !strcmp(pl->line, "or\ta,#0xff") || !strcmp(pl->line, "or\t#0xff")))
+  if(!strcmp(pl->line, "or\ta, #0xff") || !strcmp(pl->line, "or\ta,#0xff") || !strcmp(pl->line, "or\t#0xff"))
     return(false);
 
   if(ISINST(pl->line, "adc") ||
