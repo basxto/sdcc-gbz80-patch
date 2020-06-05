@@ -336,7 +336,7 @@ z80MightRead(const lineNode *pl, const char *what)
     }
 
   //ld a, #0x00
-  if((ISINST(pl->line, "xor") || (ISINST(pl->line, "sub")) &&
+  if((ISINST(pl->line, "xor") || ISINST(pl->line, "sub")) &&
      (!strcmp(pl->line+4, "a, a") || !strcmp(pl->line+4, "a,a") || (!strchr(pl->line, ',') && !strcmp(pl->line+4, "a"))))
     return(false);
 
@@ -569,8 +569,8 @@ z80SurelyWrites(const lineNode *pl, const char *what)
     what = "ix";
 
   //ld a, #0x00
-  if((ISINST(pl->line, "xor") || (ISINST(pl->line, "sub")) && !strcmp(what, "a") &&
-     (!strcmp(pl->line+4, "a, a") || !strcmp(pl->line+4, "a,a") || (!strchr(pl->line, ',') && !strcmp(pl->line+4, "a")))
+  if((ISINST(pl->line, "xor") || ISINST(pl->line, "sub")) && !strcmp(what, "a") &&
+     (!strcmp(pl->line+4, "a, a") || !strcmp(pl->line+4, "a,a") || (!strchr(pl->line, ',') && !strcmp(pl->line+4, "a"))))
     return(true);
 
   //ld a, #0x00
@@ -955,7 +955,7 @@ z80canAssign (const char *op1, const char *op2, const char *exotic)
   if(!strcmp(dst, "a") &&
      (!strcmp(src, "(bc)") || !strcmp(src, "(de)") || !strcmp(src, "(hl+)") || !strcmp(src, "(hl-)")))
     return TRUE;
-  if((!strcmp(dst, "(bc)") || !strcmp(dst, "(de)") || !strcmp(src, "(hl+)") || !strcmp(src, "(hl-)")
+  if((!strcmp(dst, "(bc)") || !strcmp(dst, "(de)") || !strcmp(src, "(hl+)") || !strcmp(src, "(hl-)"))
      && !strcmp(src, "a"))
     return TRUE;
 
