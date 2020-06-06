@@ -545,8 +545,8 @@ z80MightRead(const lineNode *pl, const char *what)
   if(IS_EZ80_Z80 && ISINST(pl->line, "pea"))
     return(argCont(pl->line + 4, what));
 
-  if (IS_GB && ISINST(pl->line, "lda") && !strcmp(what, "sp"))
-    return true;
+  if (IS_GB && (ISINST(pl->line, "lda") || ISINST(pl->line, "ldhl")))
+    return(!strcmp(what, "sp"));
 
   /* TODO: Can we know anything about rst? */
   if(ISINST(pl->line, "rst") && !strcmp(what, "sp"))
