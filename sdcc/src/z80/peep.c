@@ -269,7 +269,7 @@ z80MightBeParmInCallFromCurrentFunction(const char *what)
   return FALSE;
 }
 
-//TODO: fully support sp
+//TODO: fully support sp on z80
 static bool
 z80MightRead(const lineNode *pl, const char *what)
 {
@@ -573,7 +573,7 @@ z80CondJump(const lineNode *pl)
   return FALSE;
 }
 
-//TODO: fully support sp
+//TODO: fully support sp on z80
 static bool
 z80SurelyWrites(const lineNode *pl, const char *what)
 {
