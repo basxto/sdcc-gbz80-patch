@@ -386,6 +386,12 @@ z80MightRead(const lineNode *pl, const char *what)
             return(true);
           arg += 3;
         }
+      else if(!strncmp(arg, "sp", 2) && arg[2] == ',') // add sp, rr
+        {
+          if(!strcmp(what, "sp"))
+            return(true);
+          arg += 3;
+        }
       else if(arg[0] == 'i') // add ix/y, rr
         {
           if(!strncmp(arg, what, 2))
@@ -539,8 +545,11 @@ z80MightRead(const lineNode *pl, const char *what)
   if(IS_EZ80_Z80 && ISINST(pl->line, "pea"))
     return(argCont(pl->line + 4, what));
 
+  if (IS_GB && ISINST(pl->line, "lda") && !strcmp(what, "sp"))
+    return true;
+
   /* TODO: Can we know anything about rst? */
-  if(ISINST(pl->line, "rst"))
+  if(ISINST(pl->line, "rst") && !strcmp(what, "sp"))
     return(true);
   return(true);
 }
