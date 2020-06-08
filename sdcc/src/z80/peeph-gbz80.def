@@ -963,3 +963,9 @@ replace {
 } by {
 	; peephole sp5 removed not needed dec sp
 } if notUsed('sp')
+
+replace {
+	pop	%1
+} by {
+	; peephole sp6 removed not needed pop
+} if notUsed(%1), notUsed('sp')
