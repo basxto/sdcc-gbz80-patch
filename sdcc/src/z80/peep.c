@@ -323,11 +323,11 @@ z80MightRead(const lineNode *pl, const char *what)
     return(IY_RESERVED ? isReturned(what) || z80MightBeParmInCallFromCurrentFunction(what) : isReturned(what)) || strcmp(what, "sp") == 0;
 
   if(!strcmp(pl->line, "ex\t(sp), hl") || !strcmp(pl->line, "ex\t(sp),hl"))
-    return(!strcmp(what, "h") || !strcmp(what, "l"));
+    return(!strcmp(what, "h") || !strcmp(what, "l") || strcmp(what, "sp") == 0);
   if(!strcmp(pl->line, "ex\t(sp), ix") || !strcmp(pl->line, "ex\t(sp),ix"))
-    return(!!strstr(what, "ix"));
+    return(!!strstr(what, "ix") || strcmp(what, "sp") == 0);
   if(!strcmp(pl->line, "ex\t(sp), iy") || !strcmp(pl->line, "ex\t(sp),iy"))
-    return(!!strstr(what, "iy"));
+    return(!!strstr(what, "iy") || strcmp(what, "sp") == 0);
   if(!strcmp(pl->line, "ex\tde, hl") || !strcmp(pl->line, "ex\tde,hl"))
     return(!strcmp(what, "h") || !strcmp(what, "l") || !strcmp(what, "d") || !strcmp(what, "e"));
   if(ISINST(pl->line, "ld"))
