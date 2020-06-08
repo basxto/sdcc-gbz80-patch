@@ -269,7 +269,6 @@ z80MightBeParmInCallFromCurrentFunction(const char *what)
   return FALSE;
 }
 
-//TODO: fully support sp on z80
 static bool
 z80MightRead(const lineNode *pl, const char *what)
 {
@@ -543,7 +542,7 @@ z80MightRead(const lineNode *pl, const char *what)
     return(argCont(strchr(pl->line + 4, ','), what));
     
   if(IS_EZ80_Z80 && ISINST(pl->line, "pea"))
-    return(argCont(pl->line + 4, what));
+    return(argCont(pl->line + 4, what) || !strcmp(what, "sp"));
 
   if (IS_GB && (ISINST(pl->line, "lda") || ISINST(pl->line, "ldhl")))
     return(!strcmp(what, "sp"));
@@ -573,7 +572,6 @@ z80CondJump(const lineNode *pl)
   return FALSE;
 }
 
-//TODO: fully support sp on z80
 static bool
 z80SurelyWrites(const lineNode *pl, const char *what)
 {
