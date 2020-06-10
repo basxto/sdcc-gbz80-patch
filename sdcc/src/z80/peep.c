@@ -279,7 +279,6 @@ z80MightReadFlag(const lineNode *pl, const char *what)
      ISINST(pl->line, "ei"))
     return false;
   if(ISINST(pl->line, "nop") ||
-     ISINST(pl->line, "rst") ||
      ISINST(pl->line, "add") ||
      ISINST(pl->line, "sub") ||
      ISINST(pl->line, "and") ||
@@ -321,14 +320,21 @@ z80MightReadFlag(const lineNode *pl, const char *what)
     return !strcmp(what, "cf");
   if(ISINST(pl->line, "daa"))
     return (!strcmp(what, "nf") || !strcmp(what, "hf") );
+  if(ISINST(pl->line, "push"))
+    return (argCont(pl->line + 4, "af"));
+
+  // catch c, nc, z, nz
   if(ISINST(pl->line, "jp") ||
      ISINST(pl->line, "jr"))
-    return true;
+    return (!strchr(pl->line, ',') ||
+            ((pl->line[3] == 'c' || pl->line[4] == 'c') && !strcmp(what, "cf")) ||
+            ((pl->line[3] == 'z' || pl->line[4] == 'z') && !strcmp(what, "zf")) );
+
+  // not sure how to handle these properly
   if(ISINST(pl->line, "call"))
     return true;
-  if(ISINST(pl->line, "ret"))
-    return true;
-  if(ISINST(pl->line, "push"))
+  if(ISINST(pl->line, "ret") ||
+     ISINST(pl->line, "rst"))
     return true;
 
   return true;
