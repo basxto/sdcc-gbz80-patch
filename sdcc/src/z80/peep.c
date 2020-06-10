@@ -788,8 +788,9 @@ scan4op (lineNode **pl, const char *what, const char *untilOp,
 
       (*pl)->visited = TRUE;
 
-      if(!strcmp(what, "zf") || !strcmp(what, "nf") ||
-         !strcmp(what, "hf") || !strcmp(what, "cf"))
+      if(!strcmp(what, "sf") || !strcmp(what, "zf") ||
+         !strcmp(what, "hf") || !strcmp(what, "pf") ||
+         !strcmp(what, "nf") || !strcmp(what, "cf"))
         {
         if(z80MightReadFlag(*pl, what))
           {
@@ -827,8 +828,9 @@ scan4op (lineNode **pl, const char *what, const char *untilOp,
           return S4O_CONDJMP;
         }
 
-      if(!strcmp(what, "zf") || !strcmp(what, "nf") ||
-         !strcmp(what, "hf") || !strcmp(what, "cf"))
+      if(!strcmp(what, "sf") || !strcmp(what, "zf") ||
+         !strcmp(what, "hf") || !strcmp(what, "pf") ||
+         !strcmp(what, "nf") || !strcmp(what, "cf"))
         {
         if(z80SurelyWritesFlag(*pl, what))
           {
@@ -973,10 +975,24 @@ z80notUsed (const char *what, lineNode *endPl, lineNode *head)
     }
 
   if(!strcmp(what, "f"))
-    return(z80notUsed("zf", endPl, head) &&
-           z80notUsed("nf", endPl, head) &&
+    return(z80notUsed("sf", endPl, head) &&
+           z80notUsed("zf", endPl, head) &&
            z80notUsed("hf", endPl, head) &&
+           z80notUsed("pf", endPl, head) &&
+           z80notUsed("nf", endPl, head) &&
            z80notUsed("cf", endPl, head));
+
+  // P/V are the same flag
+  if(!strcmp(what, "vf"))
+    return(z80notUsed("pf", endPl, head));
+
+  // GBZ80 does not use what it does not have
+  // but this allows to write rules for all Z80ies
+  if(IS_GB && (!strcmp(what, "sf") || !strcmp(what, "pf")))
+    {
+      D(("Flag %s does not exist\n", what));
+      return true;
+    }
 
   // enable sp only for GBZ80
   if(!isReg(what) && !isUReg(what) &&
