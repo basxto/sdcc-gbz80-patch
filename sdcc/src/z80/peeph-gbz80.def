@@ -969,3 +969,67 @@ replace {
 } by {
 	; peephole sp6 removed not needed pop
 } if notUsed(%1), notUsed('sp')
+
+replace {
+	ld	a, #0
+} by {
+	; peephole f1 changed ld a, #0 to xor a
+	xor	a, a
+} if notUsed('f')
+
+replace {
+	ld	%2, a
+	ld	%1, %3
+	srl	%1
+	rr	%2
+} by {
+	; peephole f2 used rra instead of rr c
+	ld	%1, %3
+	srl	%1
+	rra
+	ld	%2, a
+} if notSame(%1 %2 'a'), notSame(%3 %2), notUsed('a'), notUsed('zf')
+
+replace {
+	ld	%2, a
+	srl	%1
+	rr	%2
+} by {
+	; peephole f3 used rra instead of rr c
+	srl	%1
+	rra
+	ld	%2, a
+} if notSame(%1 %2 'a'), notUsed('a'), notUsed('zf')
+
+replace {
+	srl	%1
+	rr	%2
+	srl	%1
+	rr	%2
+	srl	%1
+	rr	%2
+} by {
+	; peephole f4 used rra instead of rr c
+	ld	a, %2
+	srl	%1
+	rra
+	srl	%1
+	rra
+	srl	%1
+	rra
+	ld	%2, a
+} if  notSame(%1 %2 'a'), notUsed('a'), notUsed('zf')
+
+replace {
+	xor	a, a
+	push	af
+	inc	sp
+	xor	a, a
+	push	af
+	inc	sp
+} by {
+	; peephole f5 used rra for setting f=0
+	xor	a, a
+	rra
+	push	af
+} if notUsed('f')

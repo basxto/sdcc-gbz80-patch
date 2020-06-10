@@ -1071,7 +1071,7 @@ z80notUsed (const char *what, lineNode *endPl, lineNode *head)
       return true;
     }
 
-  // enable sp only for GBZ80
+  // enable sp and flags only for GBZ80
   if(!isReg(what) && !isUReg(what) &&
      !(IS_GB && (!strcmp(what, "sp") || !strcmp(what+1, "f"))))
     return FALSE;
