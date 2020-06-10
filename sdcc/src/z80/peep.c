@@ -640,16 +640,56 @@ z80CondJump(const lineNode *pl)
 static bool
 z80SurelyWritesFlag(const lineNode *pl, const char *what)
 {
+  if(ISINST(pl->line, "rlca") ||
+     ISINST(pl->line, "rrca"))
+    return true;
   if(ISINST(pl->line, "adc") ||
      ISINST(pl->line, "and") ||
      ISINST(pl->line, "sbc") ||
      ISINST(pl->line, "sub") ||
-     ISINST(pl->line, "xor"))
+     ISINST(pl->line, "xor") ||
+     ISINST(pl->line, "and") ||
+     ISINST(pl->line, "rla") ||
+     ISINST(pl->line, "rra") ||
+     ISINST(pl->line, "rlc") ||
+     ISINST(pl->line, "rrc") ||
+     ISINST(pl->line, "sla") ||
+     ISINST(pl->line, "sra") ||
+     ISINST(pl->line, "srl"))
     return true;
-  if(ISINST(pl->line, "or") || ISINST(pl->line, "cp"))
+  if(ISINST(pl->line, "or") ||
+     ISINST(pl->line, "cp") ||
+     ISINST(pl->line, "rl") ||
+     ISINST(pl->line, "rr"))
     return true;
+
+  if(ISINST(pl->line, "inc") ||
+     ISINST(pl->line, "dec") ||
+     ISINST(pl->line, "bit"))
+    return (!!strcmp(what, "cf"));
+
+  if(ISINST(pl->line, "daa"))
+    return (!!strcmp(what, "nf"));
+
+  if(ISINST(pl->line, "scf") ||
+     ISINST(pl->line, "ccf"))
+    return (!!strcmp(what, "zf"));
+
+  if(ISINST(pl->line, "cpl"))
+    return (!!strcmp(what, "zf") && !!strcmp(what, "cf"));
+
   if(ISINST(pl->line, "add"))
-    return (!argCont(pl->line + 4, "hl") || !!strcmp(what, "zf"));
+    return (!argCont(pl->line + 4, "sp") &&
+            (!argCont(pl->line + 4, "hl") || !!strcmp(what, "zf")));
+
+  if(ISINST(pl->line, "pop"))
+    return (!argCont(pl->line + 4, "af"));
+
+  if(IS_GB &&
+     (ISINST(pl->line, "swap") ||
+      ISINST(pl->line, "ldhl") ||
+      ISINST(pl->line, "lda")))
+    return true;
   return false;
 }
 
