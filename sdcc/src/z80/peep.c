@@ -1073,7 +1073,7 @@ z80notUsed (const char *what, lineNode *endPl, lineNode *head)
 
   // enable sp only for GBZ80
   if(!isReg(what) && !isUReg(what) &&
-     !(IS_GB && (!strcmp(what, "sp") || !strcmp(what, "f"))))
+     !(IS_GB && (!strcmp(what, "sp") || !strcmp(what+1, "f"))))
     return FALSE;
 
   _G.head = head;
