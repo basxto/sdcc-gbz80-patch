@@ -274,7 +274,9 @@ z80MightReadFlag(const lineNode *pl, const char *what)
 {
   if(ISINST(pl->line, "ld") ||
      ISINST(pl->line, "or") ||
-     ISINST(pl->line, "cp"))
+     ISINST(pl->line, "cp") ||
+     ISINST(pl->line, "di") ||
+     ISINST(pl->line, "ei"))
     return false;
   if(ISINST(pl->line, "nop") ||
      ISINST(pl->line, "rst") ||
@@ -283,21 +285,50 @@ z80MightReadFlag(const lineNode *pl, const char *what)
      ISINST(pl->line, "and") ||
      ISINST(pl->line, "xor") ||
      ISINST(pl->line, "dec") ||
-     ISINST(pl->line, "inc"))
+     ISINST(pl->line, "inc") ||
+     ISINST(pl->line, "cpl") ||
+     ISINST(pl->line, "bit") ||
+     ISINST(pl->line, "res") ||
+     ISINST(pl->line, "set") ||
+     ISINST(pl->line, "pop") ||
+     ISINST(pl->line, "rlc") ||
+     ISINST(pl->line, "rrc") ||
+     ISINST(pl->line, "sla") ||
+     ISINST(pl->line, "sra") ||
+     ISINST(pl->line, "srl") ||
+     ISINST(pl->line, "scf"))
     return false;
   if(ISINST(pl->line, "halt") ||
-     ISINST(pl->line, "reti"))
+     ISINST(pl->line, "reti") ||
+     ISINST(pl->line, "rlca") ||
+     ISINST(pl->line, "rrca"))
     return false;
 
-  if(ISINST(pl->line, "sbc") ||
-     ISINST(pl->line, "adc"))
+  if(IS_GB &&
+     (ISINST(pl->line, "stop") ||
+      ISINST(pl->line, "swap") ||
+      ISINST(pl->line, "ldh")))
+    return false;
+
+  if(ISINST(pl->line, "rl") ||
+     ISINST(pl->line, "rr"))
     return !strcmp(what, "cf");
+  if(ISINST(pl->line, "rla") ||
+     ISINST(pl->line, "rra") ||
+     ISINST(pl->line, "sbc") ||
+     ISINST(pl->line, "adc") ||
+     ISINST(pl->line, "ccf"))
+    return !strcmp(what, "cf");
+  if(ISINST(pl->line, "daa"))
+    return (!strcmp(what, "nf") || !strcmp(what, "hf") );
   if(ISINST(pl->line, "jp") ||
      ISINST(pl->line, "jr"))
     return true;
   if(ISINST(pl->line, "call"))
     return true;
   if(ISINST(pl->line, "ret"))
+    return true;
+  if(ISINST(pl->line, "push"))
     return true;
 
   return true;
