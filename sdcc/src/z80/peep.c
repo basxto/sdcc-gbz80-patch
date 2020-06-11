@@ -668,25 +668,30 @@ z80CondJump(const lineNode *pl)
   return FALSE;
 }
 
+// TODO: z80 flags only partly implemented
 static bool
 z80SurelyWritesFlag(const lineNode *pl, const char *what)
-{
+{//rlca, rra, rrca, scf, rla, outd, outi, otdr, otir, ldd, lddr, ldi, ldir don't use all flags on z80
+// inc, in, dec, daa, cpl, cpd, cpdr, cpi, cpir, ccf, bit, add
+// ld A,i … fuck
   if(ISINST(pl->line, "rlca") ||
-     ISINST(pl->line, "rrca"))
-    return true;
+     ISINST(pl->line, "rrca") ||
+     ISINST(pl->line, "rra")  ||
+     ISINST(pl->line, "rla"))
+    return (IS_GB || !!strcmp(what, "zf") && !!strcmp(what, "sf") && !!strcmp(what, "pf"));
+
   if(ISINST(pl->line, "adc") ||
      ISINST(pl->line, "and") ||
      ISINST(pl->line, "sbc") ||
      ISINST(pl->line, "sub") ||
      ISINST(pl->line, "xor") ||
      ISINST(pl->line, "and") ||
-     ISINST(pl->line, "rla") ||
-     ISINST(pl->line, "rra") ||
      ISINST(pl->line, "rlc") ||
      ISINST(pl->line, "rrc") ||
      ISINST(pl->line, "sla") ||
      ISINST(pl->line, "sra") ||
-     ISINST(pl->line, "srl"))
+     ISINST(pl->line, "srl") ||
+     ISINST(pl->line, "neg"))
     return true;
   if(ISINST(pl->line, "or") ||
      ISINST(pl->line, "cp") ||
@@ -694,9 +699,21 @@ z80SurelyWritesFlag(const lineNode *pl, const char *what)
      ISINST(pl->line, "rr"))
     return true;
 
-  if(ISINST(pl->line, "inc") ||
-     ISINST(pl->line, "dec") ||
-     ISINST(pl->line, "bit"))
+  if(ISINST(pl->line, "bit") ||
+     ISINST(pl->line, "cpd") ||
+     ISINST(pl->line, "cpi") ||
+     ISINST(pl->line, "ind") ||
+     ISINST(pl->line, "ini") ||
+     ISINST(pl->line, "rrd"))
+    return (!!strcmp(what, "cf"));
+  if(ISINST(pl->line, "cpdr") ||
+     ISINST(pl->line, "cpir") ||
+     ISINST(pl->line, "indr") ||
+     ISINST(pl->line, "inir") ||
+     ISINST(pl->line, "otdr") ||
+     ISINST(pl->line, "otir") ||
+     ISINST(pl->line, "outd") ||
+     ISINST(pl->line, "outi"))
     return (!!strcmp(what, "cf"));
 
   if(ISINST(pl->line, "daa"))
@@ -704,14 +721,19 @@ z80SurelyWritesFlag(const lineNode *pl, const char *what)
 
   if(ISINST(pl->line, "scf") ||
      ISINST(pl->line, "ccf"))
-    return (!!strcmp(what, "zf"));
+    return (!!strcmp(what, "zf") && !!strcmp(what, "sf") && !!strcmp(what, "pf"));
 
   if(ISINST(pl->line, "cpl"))
     return (!!strcmp(what, "zf") && !!strcmp(what, "cf"));
 
+  // only for simple registers
+  if((ISINST(pl->line, "inc") ||
+      ISINST(pl->line, "dec")) && isReg(pl->line+4))
+    return (!!strcmp(what, "cf"));
+
   if(ISINST(pl->line, "add"))
     return (!argCont(pl->line + 4, "sp") &&
-            (!argCont(pl->line + 4, "hl") || !!strcmp(what, "zf")));
+            (!argCont(pl->line + 4, "hl") || !!strcmp(what, "zf") && !!strcmp(what, "sf") && !!strcmp(what, "pf")));
 
   if(ISINST(pl->line, "pop"))
     return (!argCont(pl->line + 4, "af"));
