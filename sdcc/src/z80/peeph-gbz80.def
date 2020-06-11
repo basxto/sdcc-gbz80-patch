@@ -177,15 +177,24 @@ replace restart {
 } by {
 	and	a,%1
 	; peephole 15 removed redundant or after and.
-}
+} if notUsed('hf')
 
 replace restart {
 	xor	a,%1
 	or	a,a
 } by {
 	xor	a,%1
-	; peephole 16 removed redundant or after xor.
+	; peephole 16a removed redundant or after xor.
 }
+
+replace restart {
+	xor	a,%1
+	and	a,a
+} by {
+	xor	a,%1
+	; peephole 16b removed redundant and after xor.
+} if notUsed('hf')
+
 
 replace restart {
 	ld	%1,a
@@ -255,7 +264,7 @@ replace restart {
 	rlca
 	and	a,#0x01
 	; peephole 22 replaced zero load, rla by and since rlca writes the same value to carry bit and least significant bit.
-}
+} if notUsed('hf')
 
 replace restart {
 	add	a,#0x00
@@ -352,7 +361,7 @@ replace restart {
 } by {
 	ld	bc,#%1 + 0x%3%2
 	; peephole 29 moved addition of constant 0x%3%2 to bc to constant.
-}
+} if notUsed('f')
 
 replace restart {
 	ld	bc,#%1 + %4
@@ -365,7 +374,7 @@ replace restart {
 } by {
 	ld	bc,#%1 + %4 + 0x%3%2
 	; peephole 30 moved addition of constant 0x%3%2 to bc to constant.
-}
+} if notUsed('f')
 
 replace restart {
 	call	%1
@@ -547,6 +556,7 @@ replace restart {
 // Ensure that all rules above see only jp, not jr.
 barrier
 
+// TODO: add hl, de changed flags
 replace {
 	add	hl,de
 	pop	de
