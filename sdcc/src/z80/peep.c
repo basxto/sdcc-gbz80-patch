@@ -269,6 +269,7 @@ z80MightBeParmInCallFromCurrentFunction(const char *what)
   return FALSE;
 }
 
+// TODO: lacks ex support for z80
 static bool
 z80MightReadFlag(const lineNode *pl, const char *what)
 {
@@ -276,7 +277,9 @@ z80MightReadFlag(const lineNode *pl, const char *what)
      ISINST(pl->line, "or") ||
      ISINST(pl->line, "cp") ||
      ISINST(pl->line, "di") ||
-     ISINST(pl->line, "ei"))
+     ISINST(pl->line, "ei") ||
+     ISINST(pl->line, "im") ||
+     ISINST(pl->line, "in"))
     return false;
   if(ISINST(pl->line, "nop") ||
      ISINST(pl->line, "add") ||
@@ -295,12 +298,30 @@ z80MightReadFlag(const lineNode *pl, const char *what)
      ISINST(pl->line, "sla") ||
      ISINST(pl->line, "sra") ||
      ISINST(pl->line, "srl") ||
-     ISINST(pl->line, "scf"))
+     ISINST(pl->line, "scf") ||
+     ISINST(pl->line, "cpd") ||
+     ISINST(pl->line, "cpi") ||
+     ISINST(pl->line, "ind") ||
+     ISINST(pl->line, "ini") ||
+     ISINST(pl->line, "ldd") ||
+     ISINST(pl->line, "ldi") ||
+     ISINST(pl->line, "neg") ||
+     ISINST(pl->line, "rld") ||
+     ISINST(pl->line, "rrd"))
     return false;
   if(ISINST(pl->line, "halt") ||
      ISINST(pl->line, "reti") ||
      ISINST(pl->line, "rlca") ||
-     ISINST(pl->line, "rrca"))
+     ISINST(pl->line, "rrca") ||
+     ISINST(pl->line, "cpdr") ||
+     ISINST(pl->line, "cpir") ||
+     ISINST(pl->line, "indr") ||
+     ISINST(pl->line, "inir") ||
+     ISINST(pl->line, "lddr") ||
+     ISINST(pl->line, "ldir") ||
+     ISINST(pl->line, "outd") ||
+     ISINST(pl->line, "outi") ||
+     ISINST(pl->line, "jdnz"))
     return false;
 
   if(IS_GB &&
@@ -323,18 +344,22 @@ z80MightReadFlag(const lineNode *pl, const char *what)
   if(ISINST(pl->line, "push"))
     return (argCont(pl->line + 4, "af"));
 
-  // catch c, nc, z, nz
+  // catch c, nc, z, nz, po, pe, p and m
   if(ISINST(pl->line, "jp") ||
      ISINST(pl->line, "jr"))
     return (!strchr(pl->line, ',') ||
-            ((pl->line[3] == 'c' || pl->line[4] == 'c') && !strcmp(what, "cf")) ||
-            ((pl->line[3] == 'z' || pl->line[4] == 'z') && !strcmp(what, "zf")) );
+            ((pl->line[3] == 'c' || pl->line[4] == 'c')           && !strcmp(what, "cf")) ||
+            ((pl->line[3] == 'z' || pl->line[4] == 'z')           && !strcmp(what, "zf")) ||
+            ((!strcmp(pl->line, "po") || !strcmp(pl->line, "pe")) && !strcmp(what, "pf")) ||
+            ((!strcmp(pl->line, "p")  || !strcmp(pl->line, "m") ) && !strcmp(what, "sf")) );
 
   // not sure how to handle these properly
   if(ISINST(pl->line, "call"))
     return true;
-  if(ISINST(pl->line, "ret") ||
-     ISINST(pl->line, "rst"))
+  if(ISINST(pl->line, "ret")  ||
+     ISINST(pl->line, "rst")  ||
+     ISINST(pl->line, "reti") ||
+     ISINST(pl->line, "retn"))
     return true;
 
   return true;
