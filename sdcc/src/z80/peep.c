@@ -728,7 +728,7 @@ z80SurelyWritesFlag(const lineNode *pl, const char *what)
 
   // only for simple registers
   if((ISINST(pl->line, "inc") ||
-      ISINST(pl->line, "dec")) && isReg(pl->line+4))
+      ISINST(pl->line, "dec")) && (strlen(pl->line+4) == 1))
     return (!!strcmp(what, "cf"));
 
   if(ISINST(pl->line, "add"))
