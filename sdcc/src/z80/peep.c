@@ -269,7 +269,7 @@ z80MightBeParmInCallFromCurrentFunction(const char *what)
   return FALSE;
 }
 
-// TODO: lacks ex support for z80
+// TODO: lacks ex support for z80 etc.
 static bool
 z80MightReadFlag(const lineNode *pl, const char *what)
 {
@@ -310,7 +310,6 @@ z80MightReadFlag(const lineNode *pl, const char *what)
      ISINST(pl->line, "rrd"))
     return false;
   if(ISINST(pl->line, "halt") ||
-     ISINST(pl->line, "reti") ||
      ISINST(pl->line, "rlca") ||
      ISINST(pl->line, "rrca") ||
      ISINST(pl->line, "cpdr") ||
@@ -353,13 +352,20 @@ z80MightReadFlag(const lineNode *pl, const char *what)
             ((!strcmp(pl->line, "po") || !strcmp(pl->line, "pe")) && !strcmp(what, "pf")) ||
             ((!strcmp(pl->line, "p")  || !strcmp(pl->line, "m") ) && !strcmp(what, "sf")) );
 
-  // not sure how to handle these properly
-  if(ISINST(pl->line, "call"))
-    return true;
-  if(ISINST(pl->line, "ret")  ||
-     ISINST(pl->line, "rst")  ||
-     ISINST(pl->line, "reti") ||
+  // flags don't matter according to calling convention
+  if(ISINST(pl->line, "reti") ||
      ISINST(pl->line, "retn"))
+    return false;
+
+  // --reserve-regs-iy uses ret in code gen for calls through function pointers
+  if(ISINST(pl->line, "ret") && !IY_RESERVED)
+    return false;
+
+  // not sure how to handle these properly
+  if(ISINST(pl->line, "call") ||
+     ISINST(pl->line, "ret"))
+    return true;
+  if(ISINST(pl->line, "rst"))
     return true;
 
   return true;
@@ -671,9 +677,7 @@ z80CondJump(const lineNode *pl)
 // TODO: z80 flags only partly implemented
 static bool
 z80SurelyWritesFlag(const lineNode *pl, const char *what)
-{//rlca, rra, rrca, scf, rla, outd, outi, otdr, otir, ldd, lddr, ldi, ldir don't use all flags on z80
-// inc, in, dec, daa, cpl, cpd, cpdr, cpi, cpir, ccf, bit, add
-// ld A,i … fuck
+{
   if(ISINST(pl->line, "rlca") ||
      ISINST(pl->line, "rrca") ||
      ISINST(pl->line, "rra")  ||
@@ -737,6 +741,11 @@ z80SurelyWritesFlag(const lineNode *pl, const char *what)
 
   if(ISINST(pl->line, "pop"))
     return (!argCont(pl->line + 4, "af"));
+
+  // according to calling convention caller has to save flags
+  if(ISINST(pl->line, "ret") ||
+     ISINST(pl->line, "call"))
+    return true;
 
   if(IS_GB &&
      (ISINST(pl->line, "swap") ||
