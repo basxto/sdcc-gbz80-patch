@@ -1420,7 +1420,7 @@ FBYNAME (immdInRange)
               return immdError ("bad right operand", r, cmdLine);
             break;
           case 5: // result
-            if (r[0] != '%' || !immdGet (r + 1, &h))
+            if (r[0] != '%' || !(immdGet (r + 1, &h) || (r[1] == 'x' && immdGet (r + 2, &h))))
               return immdError ("bad result container", r, cmdLine);
             break;
           default: // should not reach
@@ -1477,8 +1477,17 @@ FBYNAME (immdInRange)
   // bind the result
   if ((low <= i && i <= high) || (high <= i && i <= low))
     {
+      bool hex = false;
+      if(r[1] == 'x'){
+        hex = true;
+        r[1] = '%';
+        ++r;
+      }
       char *p[] = {r, NULL};
-      sprintf (r, "%ld", i);
+      if(!hex)
+        sprintf (r, "%ld", i);
+      else
+        sprintf (r, "0x%lx", i);
       bindVar ((int) h, p, &vars);
       return TRUE;
     }
