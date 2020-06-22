@@ -1359,6 +1359,9 @@ FBYNAME (immdInRange)
   long i, j, k, h, low, high, left_l, right_l, order;
   const char *padd[] = {"+", "'+'", "\"+\"", "add", "'add'", "\"add\""};
   const char *psub[] = {"-", "'-'", "\"-\"", "sub", "'sub'", "\"sub\""};
+  const char *pand[] = {"&", "'&'", "\"&\"", "and", "'and'", "\"and\""};
+  const char *pxor[] = {"^", "'^'", "\"^\"", "xor", "'xor'", "\"xor\""};
+  const char *por[] = {"|", "'|'", "\"|\"", "or", "'or'", "\"or\""};
 
   for (i = order = 0; order < 6;)
     {
@@ -1441,6 +1444,30 @@ FBYNAME (immdInRange)
       if (strcmp (operator, psub[k]) == 0)
         {
           i = left_l - right_l;
+          j = 1;
+          break;
+        }
+  if (!j)
+    for (k = 0; k < sizeof (pand) / sizeof (pand[0]); k++) // and
+      if (strcmp (operator, pand[k]) == 0)
+        {
+          i = left_l & right_l;
+          j = 1;
+          break;
+        }
+  if (!j)
+    for (k = 0; k < sizeof (pxor) / sizeof (pxor[0]); k++) // xor
+      if (strcmp (operator, pxor[k]) == 0)
+        {
+          i = left_l ^ right_l;
+          j = 1;
+          break;
+        }
+  if (!j)
+    for (k = 0; k < sizeof (por) / sizeof (por[0]); k++) // or
+      if (strcmp (operator, por[k]) == 0)
+        {
+          i = left_l | right_l;
           j = 1;
           break;
         }
