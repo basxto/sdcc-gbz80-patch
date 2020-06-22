@@ -1480,8 +1480,7 @@ FBYNAME (immdInRange)
       bool hex = false;
       if(r[1] == 'x'){
         hex = true;
-        r[1] = '%';
-        ++r;
+        r[1] = '0';
       }
       char *p[] = {r, NULL};
       if(!hex)
