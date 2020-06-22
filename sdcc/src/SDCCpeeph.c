@@ -1357,11 +1357,11 @@ FBYNAME (immdInRange)
   char r[64], operator[8];
   const char *op;
   long i, j, k, h, low, high, left_l, right_l, order;
-  const char *padd[] = {"+", "'+'", "\"+\"", "add", "'add'", "\"add\""};
-  const char *psub[] = {"-", "'-'", "\"-\"", "sub", "'sub'", "\"sub\""};
-  const char *pand[] = {"&", "'&'", "\"&\"", "and", "'and'", "\"and\""};
-  const char *pxor[] = {"^", "'^'", "\"^\"", "xor", "'xor'", "\"xor\""};
-  const char *por[] = {"|", "'|'", "\"|\"", "or", "'or'", "\"or\""};
+  const char *padd[] =    {"+", "'+'", "\"+\""};
+  const char *psub[] =    {"-", "'-'", "\"-\""};
+  const char *pbitand[] = {"&", "'&'", "\"&\""};
+  const char *pxor[] =    {"^", "'^'", "\"^\""};
+  const char *pbitor[] =  {"|", "'|'", "\"|\""};
 
   for (i = order = 0; order < 6;)
     {
@@ -1448,8 +1448,8 @@ FBYNAME (immdInRange)
           break;
         }
   if (!j)
-    for (k = 0; k < sizeof (pand) / sizeof (pand[0]); k++) // and
-      if (strcmp (operator, pand[k]) == 0)
+    for (k = 0; k < sizeof (pbitand) / sizeof (pbitand[0]); k++) // and
+      if (strcmp (operator, pbitand[k]) == 0)
         {
           i = left_l & right_l;
           j = 1;
@@ -1464,8 +1464,8 @@ FBYNAME (immdInRange)
           break;
         }
   if (!j)
-    for (k = 0; k < sizeof (por) / sizeof (por[0]); k++) // or
-      if (strcmp (operator, por[k]) == 0)
+    for (k = 0; k < sizeof (pbitor) / sizeof (pbitor[0]); k++) // or
+      if (strcmp (operator, pbitor[k]) == 0)
         {
           i = left_l | right_l;
           j = 1;
