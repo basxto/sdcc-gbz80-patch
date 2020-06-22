@@ -1228,7 +1228,7 @@ int z80instructionSize(lineNode *pl)
   const char *op1start, *op2start;
 
   /* move to the first operand:
-   * leading spaces are already removed, skip the mnenonic */
+   * leading spaces are already removed, skip the mnemonic */
   for (op1start = pl->line; *op1start && !isspace (*op1start); ++op1start);
 
   /* skip the spaces between mnemonic and the operand */
@@ -1258,6 +1258,7 @@ int z80instructionSize(lineNode *pl)
   if(TARGET_IS_TLCS90) // Todo: More accurate estimate.
     return(6);
 
+  //TODO: LD (a16), SP
   /* All ld instructions */
   if(ISINST(pl->line, "ld"))
     {
@@ -1267,20 +1268,24 @@ int z80instructionSize(lineNode *pl)
       if((argCont(op1start, "(ix)") || argCont(op1start, "(iy)")) && op2start[0] == '#')
         return(4);
 
+      // gbz80 doesn't have that
       if(op1start[0] == '('               && STRNCASECMP(op1start, "(bc)", 4) &&
-         STRNCASECMP(op1start, "(de)", 4) && STRNCASECMP(op1start, "(hl)", 4) &&
-         STRNCASECMP(op2start, "hl", 2)   && STRNCASECMP(op2start, "a", 1) ||
+         STRNCASECMP(op1start, "(de)", 4) && STRNCASECMP(op1start, "(hl" , 3) &&
+         STRNCASECMP(op2start, "hl", 2)   && STRNCASECMP(op2start, "a", 1)   &&
+         (!IS_GB || STRNCASECMP(op2start, "sp", 2)) ||
          op2start[0] == '('               && STRNCASECMP(op2start, "(bc)", 4) &&
-         STRNCASECMP(op1start, "(de)", 4) && STRNCASECMP(op2start, "(hl)", 4) &&
+         STRNCASECMP(op1start, "(de)", 4) && STRNCASECMP(op2start, "(hl" , 3) &&
          STRNCASECMP(op1start, "hl", 2)   && STRNCASECMP(op1start, "a", 1))
         return(4);
 
+      // nope
       /* Rabbit 16-bit pointer load */
       if(IS_RAB && !STRNCASECMP(op1start, "hl", 2) && (argCont(op2start, "(hl)") || argCont(op2start, "(iy)")))
         return(4);
       if(IS_RAB && !STRNCASECMP(op1start, "hl", 2) && (argCont(op2start, "(sp)") || argCont(op2start, "(ix)")))
         return(3);
 
+      // nope
       if(IS_EZ80_Z80 && /* eZ80 16-bit pointer load */
         (!STRNCASECMP(op1start, "bc", 2) || !STRNCASECMP(op1start, "de", 2) || !STRNCASECMP(op1start, "hl", 2) || !STRNCASECMP(op1start, "ix", 2) || !STRNCASECMP(op1start, "iy", 2)))
         {
@@ -1295,8 +1300,12 @@ int z80instructionSize(lineNode *pl)
         return(3);
       if(argCont(op1start, "(ix)") || argCont(op1start, "(iy)"))
         return(3);
-      if((op1start[0] == '(' && STRNCASECMP(op1start, "(bc)", 4) && STRNCASECMP(op1start, "(de)", 4) && STRNCASECMP(op1start, "(hl)", 4)) ||
-         (op2start[0] == '(' && STRNCASECMP(op2start, "(bc)", 4) && STRNCASECMP(op2start, "(de)", 4) && STRNCASECMP(op2start, "(hl)", 4)))
+      // ld (%1), %2
+      // ld %2, (%1)
+      // notSame(%1 'bc' 'de' 'hl')
+      // to/from address
+      if((op1start[0] == '(' && STRNCASECMP(op1start, "(bc)", 4) && STRNCASECMP(op1start, "(de)", 4) && STRNCASECMP(op1start, "(hl", 3)) ||
+         (op2start[0] == '(' && STRNCASECMP(op2start, "(bc)", 4) && STRNCASECMP(op2start, "(de)", 4) && STRNCASECMP(op2start, "(hl", 3)))
         return(3);
       if(op2start[0] == '#' &&
          (!STRNCASECMP(op1start, "bc", 2) || !STRNCASECMP(op1start, "de", 2) || !STRNCASECMP(op1start, "hl", 2) || !STRNCASECMP(op1start, "sp", 2)))
@@ -1313,6 +1322,19 @@ int z80instructionSize(lineNode *pl)
 
       /* All other ld instructions */
       return(1);
+    }
+
+  // load from sp with offset
+  if(IS_GB && (ISINST(pl->line, "lda") || ISINST(pl->line, "ldhl")))
+    {
+      return(2);
+    }
+  // load from/to 0xffXX addresses
+  if(IS_GB && (ISINST(pl->line, "ldh")))
+    {
+      if(STRNCASECMP(pl->line, "(c)", 3))
+        return(1);
+      return(2);
     }
 
   /* Exchange */
@@ -1333,6 +1355,7 @@ int z80instructionSize(lineNode *pl)
   /* Push / pop */
   if(ISINST(pl->line, "push")  && IS_Z80N && op1start[0] == '#')
     return(4);
+  // yop
   if(ISINST(pl->line, "push") || ISINST(pl->line, "pop"))
     {
       if(!STRNCASECMP(op1start, "ix", 2) || !STRNCASECMP(op1start, "iy", 2))
@@ -1340,6 +1363,8 @@ int z80instructionSize(lineNode *pl)
       return(1);
     }
 
+  // we only have add hl -> 1byte
+  // and add sp -> 2byte
   /* 16 bit add / subtract / and */
   if(IS_Z80N && ISINST(pl->line, "add") && (!STRNCASECMP(op1start, "bc", 2) || !STRNCASECMP(op1start, "de", 2) || !STRNCASECMP(op1start, "hl", 2)))
     return(4);
@@ -1360,7 +1385,7 @@ int z80instructionSize(lineNode *pl)
   /* 16 bit adjustment to stack pointer */
   if(IS_TLCS90 && ISINST(pl->line, "add") && !STRNCASECMP(op1start, "sp", 2))
     return(3);
-  
+  //yop
   /* 8 bit arithmetic, two operands */
   if(op2start &&  op1start[0] == 'a' &&
      (ISINST(pl->line, "add") || ISINST(pl->line, "adc") || ISINST(pl->line, "sub") || ISINST(pl->line, "sbc") ||
@@ -1373,9 +1398,11 @@ int z80instructionSize(lineNode *pl)
       return(1);
     }
 
+  //yop
   if(ISINST(pl->line, "rlca") || ISINST(pl->line, "rla") || ISINST(pl->line, "rrca") || ISINST(pl->line, "rra"))
     return(1);
 
+  //yop
   /* Increment / decrement */
   if(ISINST(pl->line, "inc") || ISINST(pl->line, "dec"))
     {
@@ -1405,9 +1432,11 @@ int z80instructionSize(lineNode *pl)
       return(2);
     }
 
+  //yop
   if(ISINST(pl->line, "jr") || ISINST(pl->line, "djnz"))
     return(2);
 
+  //yop
   if(ISINST(pl->line, "jp"))
     {
       if(!STRNCASECMP(op1start, "(hl)", 4))
@@ -1422,16 +1451,17 @@ int z80instructionSize(lineNode *pl)
        ISINST(pl->line, "ipset1") || ISINST(pl->line, "ipset0") ||
        ISINST(pl->line, "ipres")))
     return(2);
-  
-  if(ISINST(pl->line, "reti") || ISINST(pl->line, "retn"))
+
+  if(!IS_GB && (ISINST(pl->line, "reti") || ISINST(pl->line, "retn")))
     return(2);
 
-  if(ISINST(pl->line, "ret") || ISINST(pl->line, "rst"))
+  if(ISINST(pl->line, "ret") || ISINST(pl->line, "reti") || ISINST(pl->line, "rst"))
     return(1);
 
   if(ISINST(pl->line, "call"))
     return(3);
 
+  // ldi and ldd would be 1 byte on GBZ80, but they have different names in asgb
   if(ISINST(pl->line, "ldi") || ISINST(pl->line, "ldd") || ISINST(pl->line, "cpi") || ISINST(pl->line, "cpd"))
     return(2);
 
@@ -1439,7 +1469,8 @@ int z80instructionSize(lineNode *pl)
     return(2);
 
   if(ISINST(pl->line, "daa") || ISINST(pl->line, "cpl")  || ISINST(pl->line, "ccf") || ISINST(pl->line, "scf") ||
-     ISINST(pl->line, "nop") || ISINST(pl->line, "halt") || ISINST(pl->line,  "ei") || ISINST(pl->line, "di"))
+     ISINST(pl->line, "nop") || ISINST(pl->line, "halt") || ISINST(pl->line,  "ei") || ISINST(pl->line, "di")  ||
+     (IS_GB && ISINST(pl->line, "stop")))
     return(1);
 
   if(ISINST(pl->line, "im"))
@@ -1450,9 +1481,6 @@ int z80instructionSize(lineNode *pl)
 
   if((IS_Z180 || IS_EZ80_Z80) && (ISINST(pl->line, "in0") || ISINST(pl->line, "out0")))
     return(3);
-
-  if(ISINST(pl->line, "di") || ISINST(pl->line, "ei"))
-    return(1);
 
   if((IS_Z180 || IS_EZ80_Z80 || IS_Z80N) && ISINST(pl->line, "mlt"))
     return(2);
