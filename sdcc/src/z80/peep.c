@@ -1129,7 +1129,8 @@ z80notUsed (const char *what, lineNode *endPl, lineNode *head)
 
   // enable sp and flags only for GBZ80
   if(!isReg(what) && !isUReg(what) &&
-     !(IS_GB && (!strcmp(what, "sp") || !strcmp(what+1, "f"))))
+     !(IS_GB && (!strcmp(what, "sp") || !strcmp(what+1, "f"))) &&
+     !((IS_Z80 || IS_Z180 || IS_EZ80_Z80) && !strcmp(what, "sp")))
     return FALSE;
 
   _G.head = head;
