@@ -225,21 +225,18 @@ static bool argCont(const char *arg, const char *what)
 {
   wassert (arg);
 
-  while(isspace (*arg) || *arg == ',')
+  while(isspace (*arg) || *arg == ',' || *arg == '(')
     arg++;
 
   if (arg[0] == '#')
     return false;
 
-  if(arg[0] == '(' && arg[1] && arg[2] && (arg[2] != ')' && arg[3] != ')')
-     && !(IS_GB && (arg[3] == '-' || arg[3] == '+') && arg[4] == ')'))
-    return FALSE;
-
-  if(*arg == '(')
-    arg++;
-
   // Get suitable end to avoid reading into further arguments.
   const char *end = strchr(arg, ',');
+  // Don't find it in immediate values
+  // hex numbers could give false positives
+  if (!end || end > strchr(arg, '#'))
+    end = strchr(arg, '#');
   if (!end)
     end = arg + strlen(arg);
 
@@ -379,7 +376,8 @@ z80MightRead(const lineNode *pl, const char *what)
   if(strcmp(what, "ixl") == 0 || strcmp(what, "ixh") == 0)
     what = "ix";
 
-  if(ISINST(pl->line, "call") && strcmp(what, "sp") == 0)
+  if((ISINST(pl->line, "call") || ISINST(pl->line, "lcall") || ISINST(pl->line, "lret")) &&
+     strcmp(what, "sp") == 0)
     return TRUE;
 
   if(strcmp(pl->line, "call\t__initrleblock") == 0)
@@ -432,10 +430,12 @@ z80MightRead(const lineNode *pl, const char *what)
   if(!strcmp(pl->line, "ex\tde, hl") || !strcmp(pl->line, "ex\tde,hl"))
     return(!strcmp(what, "h") || !strcmp(what, "l") || !strcmp(what, "d") || !strcmp(what, "e"));
   if(ISINST(pl->line, "ld"))
-    {
+    {///?
       if(argCont(strchr(pl->line, ','), what))
         return(true);
-      if(*(strchr(pl->line, ',') - 1) == ')' && strstr(pl->line + 3, what) && (strchr(pl->line, '#') == 0 || strchr(pl->line, '#') > strchr(pl->line, ',')))
+      // Must be before , and immediate values
+      const char *match = strstr(pl->line + 3, what);
+      if(*(strchr(pl->line, ',') - 1) == ')' && match && match < strchr(pl->line, ',') && (strchr(pl->line, '#') == 0 || strchr(pl->line, '#') > match))
         return(true);
       return(false);
     }
@@ -650,7 +650,7 @@ z80MightRead(const lineNode *pl, const char *what)
     return(!strcmp(what, "sp"));
 
   /* TODO: Can we know anything about rst? */
-  if(ISINST(pl->line, "rst") && !strcmp(what, "sp"))
+  if(ISINST(pl->line, "rst") && !!strcmp(what, "sp"))
     return(true);
   return(true);
 }
