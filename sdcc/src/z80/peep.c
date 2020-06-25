@@ -221,22 +221,37 @@ findLabel (const lineNode *pl)
 }
 
 /* Check if reading arg implies reading what. */
-static bool argCont(const char *arg, const char *what)
+static bool argCont(const char *arg, const char *what, const bool indirectOnly)
 {
   wassert (arg);
 
-  while(isspace (*arg) || *arg == ',' || *arg == '(')
+  while(isspace (*arg) || *arg == ',')
     arg++;
+
+  // Get suitable end to avoid reading into further arguments.
+  const char *end = strchr(arg, ',');
+
+  // Jump to open bracket
+  if (strchr(arg, '(') && (end || strchr(arg, '(') < end))
+    {
+      // Start at opening bracket
+      arg = strchr(arg, '(');
+      // And end with closing one
+      if (!end || end > strchr(arg, ')'))
+        end = strchr(arg, ')');
+    }
+  else if(indirectOnly)
+    // Indirect access always uses brackets
+    return false;
 
   if (arg[0] == '#')
     return false;
 
-  // Get suitable end to avoid reading into further arguments.
-  const char *end = strchr(arg, ',');
   // Don't find it in immediate values
-  // hex numbers could give false positives
-  if (!end || end > strchr(arg, '#'))
-    end = strchr(arg, '#');
+  if (!end || end > strchr(arg, '+'))
+    end = strchr(arg, '+');
+  if (!end || end > strchr(arg, '-'))
+    end = strchr(arg, '-');
   if (!end)
     end = arg + strlen(arg);
 
@@ -338,7 +353,7 @@ z80MightReadFlag(const lineNode *pl, const char *what)
   if(ISINST(pl->line, "daa"))
     return (!strcmp(what, "nf") || !strcmp(what, "hf") );
   if(ISINST(pl->line, "push"))
-    return (argCont(pl->line + 4, "af"));
+    return (argCont(pl->line + 4, "af", false));
 
   // catch c, nc, z, nz, po, pe, p and m
   if(ISINST(pl->line, "jp") ||
@@ -430,12 +445,11 @@ z80MightRead(const lineNode *pl, const char *what)
   if(!strcmp(pl->line, "ex\tde, hl") || !strcmp(pl->line, "ex\tde,hl"))
     return(!strcmp(what, "h") || !strcmp(what, "l") || !strcmp(what, "d") || !strcmp(what, "e"));
   if(ISINST(pl->line, "ld"))
-    {///?
-      if(argCont(strchr(pl->line, ','), what))
+    {
+      
+      if(argCont(pl->line+3, what, true))
         return(true);
-      // Must be before , and immediate values
-      const char *match = strstr(pl->line + 3, what);
-      if(*(strchr(pl->line, ',') - 1) == ')' && match && match < strchr(pl->line, ',') && (strchr(pl->line, '#') == 0 || strchr(pl->line, '#') > match))
+      if(argCont(strchr(pl->line, ','), what, false))
         return(true);
       return(false);
     }
@@ -499,7 +513,7 @@ z80MightRead(const lineNode *pl, const char *what)
             return(true);
           arg += 3;
         }
-      return(argCont(arg, what));
+      return(argCont(arg, what, false));
     }
 
   if(ISINST(pl->line, "or") || ISINST(pl->line, "cp") )
@@ -519,7 +533,7 @@ z80MightRead(const lineNode *pl, const char *what)
             return(true);
           arg += 3;
         }
-      return(argCont(arg, what));
+      return(argCont(arg, what, false));
     }
 
   if(ISINST(pl->line, "neg"))
@@ -534,7 +548,7 @@ z80MightRead(const lineNode *pl, const char *what)
   if(ISINST(pl->line, "dec") ||
      ISINST(pl->line, "inc"))
     {
-      return(argCont(pl->line + 4, what));
+      return(argCont(pl->line + 4, what, false));
     }
 
   if(ISINST(pl->line, "cpl"))
@@ -555,7 +569,7 @@ z80MightRead(const lineNode *pl, const char *what)
   if(ISINST(pl->line, "rl") ||
      ISINST(pl->line, "rr"))
     {
-      return(argCont(pl->line + 3, what));
+      return(argCont(pl->line + 3, what, false));
     }
   if(ISINST(pl->line, "rlc") ||
      ISINST(pl->line, "sla") ||
@@ -563,11 +577,11 @@ z80MightRead(const lineNode *pl, const char *what)
      ISINST(pl->line, "sra") ||
      ISINST(pl->line, "srl"))
     {
-      return(argCont(pl->line + 4, what));
+      return(argCont(pl->line + 4, what, false));
     }
   if(IS_GB && ISINST(pl->line, "swap"))
     {
-      return(argCont(pl->line + 5, what));
+      return(argCont(pl->line + 5, what, false));
     }
   if(!IS_GB && !IS_RAB &&
     (ISINST(pl->line, "rld") ||
@@ -579,7 +593,7 @@ z80MightRead(const lineNode *pl, const char *what)
      ISINST(pl->line, "set") ||
      ISINST(pl->line, "res"))
     {
-      return(argCont(strchr(pl->line + 4, ','), what));
+      return(argCont(strchr(pl->line + 4, ','), what, false));
     }
 
   if(ISINST(pl->line, "ccf")  ||
@@ -619,7 +633,7 @@ z80MightRead(const lineNode *pl, const char *what)
     return(false);
 
   if((IS_Z180 || IS_EZ80_Z80 || IS_Z80N) && ISINST(pl->line, "mlt"))
-    return(argCont(pl->line + 4, what));
+    return(argCont(pl->line + 4, what, false));
 
   if((IS_Z180 || IS_EZ80_Z80) &&
     (ISINST(pl->line, "otim") || ISINST(pl->line, "otimr") || ISINST(pl->line, "otir") || ISINST(pl->line, "otirx")))
@@ -629,7 +643,7 @@ z80MightRead(const lineNode *pl, const char *what)
     return(false);
 
   if((IS_Z180 || IS_EZ80_Z80 || IS_Z80N) && ISINST(pl->line, "tst"))
-    return(argCont(pl->line + 4, what));
+    return(argCont(pl->line + 4, what, false));
 
   if((IS_Z180 || IS_EZ80_Z80) && ISINST(pl->line, "tstio"))
     return(!strcmp(what, "c"));
@@ -638,13 +652,13 @@ z80MightRead(const lineNode *pl, const char *what)
     return(!strcmp(what, "b") || !strcmp(what, "c") || !strcmp(what, "d") || !strcmp(what, "e"));
 
   if(IS_RAB && ISINST(pl->line, "bool"))
-    return(argCont(pl->line + 5, what));
+    return(argCont(pl->line + 5, what, false));
     
   if(IS_EZ80_Z80 && ISINST(pl->line, "lea"))
-    return(argCont(strchr(pl->line + 4, ','), what));
+    return(argCont(strchr(pl->line + 4, ',', what, false)));
     
   if(IS_EZ80_Z80 && ISINST(pl->line, "pea"))
-    return(argCont(pl->line + 4, what) || !strcmp(what, "sp"));
+    return(argCont(pl->line + 4, what, false) || !strcmp(what, "sp"));
 
   if (IS_GB && (ISINST(pl->line, "lda") || ISINST(pl->line, "ldhl")))
     return(!strcmp(what, "sp"));
@@ -736,11 +750,11 @@ z80SurelyWritesFlag(const lineNode *pl, const char *what)
     return (!!strcmp(what, "cf"));
 
   if(ISINST(pl->line, "add"))
-    return (!argCont(pl->line + 4, "sp") &&
-            (!argCont(pl->line + 4, "hl") || !!strcmp(what, "zf") && !!strcmp(what, "sf") && !!strcmp(what, "pf")));
+    return (!argCont(pl->line + 4, "sp", false) &&
+            (!argCont(pl->line + 4, "hl", false) || !!strcmp(what, "zf") && !!strcmp(what, "sf") && !!strcmp(what, "pf")));
 
   if(ISINST(pl->line, "pop"))
-    return (!argCont(pl->line + 4, "af"));
+    return (!argCont(pl->line + 4, "af", false));
 
   // according to calling convention caller has to save flags
   if(ISINST(pl->line, "ret") ||
@@ -1265,7 +1279,7 @@ int z80instructionSize(lineNode *pl)
       /* These 4 are the only cases of 4 byte long ld instructions. */
       if(!STRNCASECMP(op1start, "ix", 2) || !STRNCASECMP(op1start, "iy", 2))
         return(4);
-      if((argCont(op1start, "(ix)") || argCont(op1start, "(iy)")) && op2start[0] == '#')
+      if((argCont(op1start, "(ix)", false) || argCont(op1start, "(iy)", false)) && op2start[0] == '#')
         return(4);
 
       if(op1start[0] == '('               && STRNCASECMP(op1start, "(bc)", 4) &&
@@ -1277,9 +1291,9 @@ int z80instructionSize(lineNode *pl)
         return(4);
 
       /* Rabbit 16-bit pointer load */
-      if(IS_RAB && !STRNCASECMP(op1start, "hl", 2) && (argCont(op2start, "(hl)") || argCont(op2start, "(iy)")))
+      if(IS_RAB && !STRNCASECMP(op1start, "hl", 2) && (argCont(op2start, "(hl)", false) || argCont(op2start, "(iy)", false)))
         return(4);
-      if(IS_RAB && !STRNCASECMP(op1start, "hl", 2) && (argCont(op2start, "(sp)") || argCont(op2start, "(ix)")))
+      if(IS_RAB && !STRNCASECMP(op1start, "hl", 2) && (argCont(op2start, "(sp)", false) || argCont(op2start, "(ix)", false)))
         return(3);
 
       if(IS_EZ80_Z80 && /* eZ80 16-bit pointer load */
@@ -1287,14 +1301,14 @@ int z80instructionSize(lineNode *pl)
         {
           if (!STRNCASECMP(op2start, "(hl)", 4))
             return(2);
-          if (argCont(op2start, "(ix)") || argCont(op2start, "(iy)"))
+          if (argCont(op2start, "(ix)", false) || argCont(op2start, "(iy)", false))
             return(3);
         }
 
       /* These 4 are the only remaining cases of 3 byte long ld instructions. */
-      if(argCont(op2start, "(ix)") || argCont(op2start, "(iy)"))
+      if(argCont(op2start, "(ix)", false) || argCont(op2start, "(iy)", false))
         return(3);
-      if(argCont(op1start, "(ix)") || argCont(op1start, "(iy)"))
+      if(argCont(op1start, "(ix)", false) || argCont(op1start, "(iy)", false))
         return(3);
       if((op1start[0] == '(' && STRNCASECMP(op1start, "(bc)", 4) && STRNCASECMP(op1start, "(de)", 4) && STRNCASECMP(op1start, "(hl)", 4)) ||
          (op2start[0] == '(' && STRNCASECMP(op2start, "(bc)", 4) && STRNCASECMP(op2start, "(de)", 4) && STRNCASECMP(op2start, "(hl)", 4)))
@@ -1326,7 +1340,7 @@ int z80instructionSize(lineNode *pl)
           werrorfl(pl->ic->filename, pl->ic->lineno, W_UNRECOGNIZED_ASM, __FUNCTION__, 4, pl->line);
           return(4);
         }
-      if(argCont(op1start, "(sp)") && (IS_RAB || !STRNCASECMP(op2start, "ix", 2) || !STRNCASECMP(op2start, "iy", 2)))
+      if(argCont(op1start, "(sp)", false) && (IS_RAB || !STRNCASECMP(op2start, "ix", 2) || !STRNCASECMP(op2start, "iy", 2)))
         return(2);
       return(1);
     }
@@ -1367,7 +1381,7 @@ int z80instructionSize(lineNode *pl)
      (ISINST(pl->line, "add") || ISINST(pl->line, "adc") || ISINST(pl->line, "sub") || ISINST(pl->line, "sbc") ||
       ISINST(pl->line, "cp")  || ISINST(pl->line, "and") || ISINST(pl->line, "or")  || ISINST(pl->line, "xor")))
     {
-      if(argCont(op2start, "(ix)") || argCont(op2start, "(iy)"))
+      if(argCont(op2start, "(ix)", false) || argCont(op2start, "(iy)", false))
         return(3);
       if(op2start[0] == '#')
         return(2);
@@ -1382,7 +1396,7 @@ int z80instructionSize(lineNode *pl)
     {
       if(!STRNCASECMP(op1start, "ix", 2) || !STRNCASECMP(op1start, "iy", 2))
         return(2);
-      if(argCont(op1start, "(ix)") || argCont(op1start, "(iy)"))
+      if(argCont(op1start, "(ix)", false) || argCont(op1start, "(iy)", false))
         return(3);
       return(1);
     }
@@ -1390,7 +1404,7 @@ int z80instructionSize(lineNode *pl)
   if(ISINST(pl->line, "rlc") || ISINST(pl->line, "rl")  || ISINST(pl->line, "rrc") || ISINST(pl->line, "rr") ||
      ISINST(pl->line, "sla") || ISINST(pl->line, "sra") || ISINST(pl->line, "srl"))
     {
-      if(argCont(op1start, "(ix)") || argCont(op1start, "(iy)"))
+      if(argCont(op1start, "(ix)", false) || argCont(op1start, "(iy)", false))
         return(4);
       return(2);
     }
@@ -1401,7 +1415,7 @@ int z80instructionSize(lineNode *pl)
   /* Bit */
   if(ISINST(pl->line, "bit") || ISINST(pl->line, "set") || ISINST(pl->line, "res"))
     {
-      if(argCont(op2start, "(ix)") || argCont(op2start, "(iy)"))
+      if(argCont(op2start, "(ix)", false) || argCont(op2start, "(iy)", false))
         return(4);
       return(2);
     }
