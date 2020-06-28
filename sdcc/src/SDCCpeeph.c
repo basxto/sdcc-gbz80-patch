@@ -1064,7 +1064,7 @@ FBYNAME (notUsedFrom)
   }
 
   what = setFirstItem (operands);
-  label = setNextItem (operands); 
+  label = setNextItem (operands);
 
   if (port->peep.notUsedFrom)
     return port->peep.notUsedFrom (what, label, head);
@@ -1105,7 +1105,7 @@ FBYNAME (canAssign)
     }
 
   if (port->peep.canAssign)
-    {  
+    {
       bool ret = port->peep.canAssign (dst, src, exotic);
       deleteSet (&operands);
       return (ret);
@@ -1174,7 +1174,7 @@ FBYNAME (notSimilar)
                " malformed: %s\n", cmdLine);
       return FALSE;
     }
-
+  // (0 || 0) && 0
   while ((op1 = setFirstItem (operands)))
     {
       deleteSetItem (&operands, (void*)op1);
@@ -1357,8 +1357,11 @@ FBYNAME (immdInRange)
   char r[64], operator[8];
   const char *op;
   long i, j, k, h, low, high, left_l, right_l, order;
-  const char *padd[] = {"+", "'+'", "\"+\"", "add", "'add'", "\"add\""};
-  const char *psub[] = {"-", "'-'", "\"-\"", "sub", "'sub'", "\"sub\""};
+  const char *padd[] =    {"+", "'+'", "\"+\""};
+  const char *psub[] =    {"-", "'-'", "\"-\""};
+  const char *pbitand[] = {"&", "'&'", "\"&\""};
+  const char *pxor[] =    {"^", "'^'", "\"^\""};
+  const char *pbitor[] =  {"|", "'|'", "\"|\""};
 
   for (i = order = 0; order < 6;)
     {
@@ -1417,7 +1420,7 @@ FBYNAME (immdInRange)
               return immdError ("bad right operand", r, cmdLine);
             break;
           case 5: // result
-            if (r[0] != '%' || !immdGet (r + 1, &h))
+            if (r[0] != '%' || !(immdGet (r + 1, &h) || (r[1] == 'x' && immdGet (r + 2, &h))))
               return immdError ("bad result container", r, cmdLine);
             break;
           default: // should not reach
@@ -1445,13 +1448,45 @@ FBYNAME (immdInRange)
           break;
         }
   if (!j)
+    for (k = 0; k < sizeof (pbitand) / sizeof (pbitand[0]); k++) // and
+      if (strcmp (operator, pbitand[k]) == 0)
+        {
+          i = left_l & right_l;
+          j = 1;
+          break;
+        }
+  if (!j)
+    for (k = 0; k < sizeof (pxor) / sizeof (pxor[0]); k++) // xor
+      if (strcmp (operator, pxor[k]) == 0)
+        {
+          i = left_l ^ right_l;
+          j = 1;
+          break;
+        }
+  if (!j)
+    for (k = 0; k < sizeof (pbitor) / sizeof (pbitor[0]); k++) // or
+      if (strcmp (operator, pbitor[k]) == 0)
+        {
+          i = left_l | right_l;
+          j = 1;
+          break;
+        }
+  if (!j)
     return immdError ("bad operator", operator, cmdLine);
 
   // bind the result
   if ((low <= i && i <= high) || (high <= i && i <= low))
     {
+      bool hex = false;
+      if(r[1] == 'x'){
+        hex = true;
+        r[1] = '0';
+      }
       char *p[] = {r, NULL};
-      sprintf (r, "%ld", i);
+      if(!hex)
+        sprintf (r, "%ld", i);
+      else
+        sprintf (r, "0x%lx", i);
       bindVar ((int) h, p, &vars);
       return TRUE;
     }
@@ -1665,7 +1700,7 @@ callFuncByName (char *fname,
         {
 
           int num_parenthesis = 0;
-          cmdTerm = funcArgs;          
+          cmdTerm = funcArgs;
 
           while ((c = *cmdTerm) && (c != ')' || num_parenthesis))
             {
@@ -2524,7 +2559,7 @@ isLabelDefinition (const char *line, const char **start, int *len, bool isPeepRu
   return TRUE;
 }
 
-/* Not perfect, will not find all references yet. 
+/* Not perfect, will not find all references yet.
    Will however find references in call on Z80, which is sufficient to fix #2970351. */
 bool
 isLabelReference (const char *line, const char **start, int *len)
@@ -2536,22 +2571,22 @@ isLabelReference (const char *line, const char **start, int *len)
   s = line;
   while (ISCHARSPACE (*s))
     ++s;
-  	
+
   if(strncmp(s, "call", 4))
     return FALSE;
   s += 4;
 
   while (ISCHARSPACE (*s))
     ++s;
-  
+
   /* Skip condition in conditional call */
-  if (strchr(s, ',')) 
+  if (strchr(s, ','))
     s = strchr(s, ',') + 1;
-    
+
   e = s, *len = 0;
   while(*e && !ISCHARSPACE (*e) && *e != ';')
     ++e, ++(*len);
-    
+
   *start = s;
 
   return TRUE;
@@ -2598,20 +2633,20 @@ buildLabelRefCountHash (lineNode *head)
       /* run isLabelDefinition to:
          - look for labels in inline assembler
          - calculate labelLen
-      */ 
+      */
       if ((line->isLabel || line->isInline) && isLabelDefinition (line->line, &label, &labelLen, FALSE) ||
         (ref = TRUE) && isLabelReference (line->line, &label, &labelLen))
         {
           labelHashEntry *entry, *e;
 
           assert (labelLen <= SDCC_NAME_MAX);
-              
+
           entry = traceAlloc (&_G.labels, Safe_alloc(sizeof (labelHashEntry)));
 
           memcpy (entry->name, label, labelLen);
           entry->name[labelLen] = 0;
           entry->refCount = -1;
-     
+
           for (e = hTabFirstItemWK (labelHash, hashSymbolName (entry->name)); e; e = hTabNextItemWK (labelHash))
             if (!strcmp (entry->name, e->name))
               goto c;
@@ -2654,8 +2689,8 @@ buildLabelRefCountHash (lineNode *head)
                 e->refCount++;
             }
         }
-        
-        
+
+
       for (i = 0; i < HTAB_SIZE; i++)
         {
           labelHashEntry *thisEntry;
