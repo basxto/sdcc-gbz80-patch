@@ -693,6 +693,19 @@ notVolatileVariable(const char *var, lineNode *currPl, lineNode *endPl)
       if (*var=='@')
         return global_not_volatile;
     }
+
+  if (TARGET_IS_GBZ80)
+    {
+      /* Only part of the address space is non-volatile */
+      if (var[0] == '#')
+        return false;
+      if (strstr (var, "(hl+)"))
+        return false;
+      if (strstr (var, "(hl-)"))
+        return false;
+      //TODO: make sure (hl) etc have save values
+    }
+
   if (TARGET_Z80_LIKE)
     {
       if (var[0] == '#')
