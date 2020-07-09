@@ -1518,7 +1518,7 @@ replace restart {
 } by {
 	; common peephole 142 used ex to move hl onto the stack.
 	ex	(sp),hl
-} if isPort('z80' 'ez80_z80'), notUsed('a'), notUsed('hl')
+} if isPort('z80' 'ez80_z80' 'z180' 'z80n'), notUsed('a'), notUsed('hl')
 
 replace restart {
 	pop	af
@@ -1528,7 +1528,7 @@ replace restart {
 	ld	hl, #%1
 	; common peephole 143 used ex to move hl onto the stack.
 	ex	(sp),hl
-} if isPort('z80' 'ez80_z80'), notUsed('a'), notUsed('hl')
+} if isPort('z80' 'ez80_z80' 'z180' 'z80n'), notUsed('a'), notUsed('hl')
 
 replace restart {
 	pop	af
@@ -1540,7 +1540,7 @@ replace restart {
 	ld	hl,#%1
 	; common peephole 144 used ex to move #%1 onto the stack.
 	ex	(sp),hl
-} if isPort('z80' 'ez80_z80'), notUsed('a'), notUsed('hl')
+} if isPort('z80' 'ez80_z80' 'z180' 'z80n'), notUsed('a'), notUsed('hl')
 
 replace restart {
 	pop	af
@@ -1554,7 +1554,7 @@ replace restart {
 	ld	l, %2 (ix)
 	; common peephole 145 used ex to move %1 (ix) %2 (ix) onto the stack.
 	ex	(sp),hl
-} if isPort('z80' 'ez80_z80'), notUsed('a'), notUsed('hl')
+} if isPort('z80' 'ez80_z80' 'z180' 'z80n'), notUsed('a'), notUsed('hl')
 
 replace restart {
 	pop	af
@@ -1566,7 +1566,7 @@ replace restart {
 	ex	(sp),hl
 	; common peephole 146 used ex to move #%1 onto the stack.
 	inc	sp
-} if isPort('z80' 'ez80_z80'), notUsed('a'), notUsed('hl')
+} if isPort('z80' 'ez80_z80' 'z180' 'z80n'), notUsed('a'), notUsed('hl')
 
 replace restart {
 	ld	%1,#%2
@@ -1609,7 +1609,7 @@ replace restart {
 	sbc	a,%1
 	jp	M,%2
 	; common peephole 150 used sign flag instead of testing bit 7.
-} if isPort('z80' 'ez80_z80' 'tlcs90')
+} if isPort('z80' 'ez80_z80' 'z180' 'z80n' 'tlcs90')
 
 replace restart {
 	ld	%1,a
@@ -1882,7 +1882,7 @@ replace restart {
 } by {
 	; common peephole 156 used ex to load hl into de.
 	ex	de,hl
-} if isPort('z80' 'ez80_z80' 'r2k' 'tlcs90'), notUsed('hl')
+} if isPort('z80' 'ez80_z80' 'z180' 'z80n' 'r2k' 'r3ka' 'tlcs90'), notUsed('hl')
 
 replace restart {
 	ld	l,e
@@ -1890,7 +1890,7 @@ replace restart {
 } by {
 	; common peephole 157 used ex to load de into hl.
 	ex	de,hl
-} if isPort('z80' 'ez80_z80' 'r2k' 'tlcs90'), notUsed('de')
+} if isPort('z80' 'ez80_z80' 'z180' 'z80n' 'r2k' 'r3ka' 'tlcs90'), notUsed('de')
 
 barrier
 
@@ -2196,6 +2196,6 @@ replace {
 } by {
 	djnz	%5
 	; common peephole 167 used djnz
-} if isPort('z80' 'ez80_z80' 'r2k' 'tlcs90')
+} if isPort('z80' 'ez80_z80' 'z180' 'z80n' 'r2k' 'r3ka' 'tlcs90')
 
 barrier
