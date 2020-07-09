@@ -389,7 +389,7 @@ replace restart {
 	ld	a, #%4
 	; peephole 168z used double assignment in case of Z condition.
 %1:
-} if labelRefCountChange(%2 -1)
+} if labelRefCountChange(%2 -1) 
 
 replace restart {
 	jp	NZ, %2
@@ -405,7 +405,7 @@ replace restart {
 	ld	a, #%4
 	; peephole 168nz used double assignment in case of NZ condition.
 %1:
-} if labelRefCountChange(%2 -1)
+} if labelRefCountChange(%2 -1) 
 
 replace restart {
 	jp	Z, %2
