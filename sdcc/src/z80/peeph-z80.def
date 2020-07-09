@@ -19,4 +19,18 @@
 // along with this program; if not, write to the Free Software
 // Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
-barrier
+replace restart {
+	ld	a, %1
+	push	af
+} by {
+	push	%2
+	; peephole 177 replace pushed register pair
+} if notUsed('a'), canJoinRegs(%1 '' %2), canSplitReg(%2 %3), same(%3 %1)
+
+replace restart {
+	xor	a, a
+	ld	%1 (%2), a
+} by {
+	ld	%1 (%2), #0
+	; peephole 178 direct load zero constant to memory addressed by index register
+} if notUsed('a'), canAssign(%1 %2 '#0')

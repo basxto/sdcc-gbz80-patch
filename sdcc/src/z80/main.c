@@ -63,6 +63,18 @@ static char _gbz80_defaultRules[] = {
 #include "peeph-gbz80.rul"
 };
 
+static char _ez80_z80_defaultRules[] = {
+#include "peeph.rul"
+#include "peeph-z80.rul"
+#include "peeph-ez80_z80.rul"
+};
+
+static char _z80n_defaultRules[] = {
+#include "peeph.rul"
+#include "peeph-z80.rul"
+#include "peeph-z80n.rul"
+};
+
 
 
 Z80_OPTS z80_opts;
@@ -455,7 +467,7 @@ _gbz80_rgblink (void)
   dbuf_append_str (&lnkFileName, ".lk");
   if (!(lnkfile = fopen (dbuf_c_str (&lnkFileName), "w")))
     {
-      werror (E_FILE_OPEN_ERR, dbuf_c_str (&lnkFileName));
+      werror (E_OUTPUT_FILE_OPEN_ERR, dbuf_c_str (&lnkFileName), strerror (errno));
       dbuf_destroy (&lnkFileName);
       exit (1);
     }
@@ -921,6 +933,8 @@ PORT z80_port =
     z80canAssign,
     z80notUsedFrom,
     z80symmParmStack,
+    z80canJoinRegs,
+    z80canSplitReg,
   },
   /* Sizes: char, short, int, long, long long, near ptr, far ptr, gptr, func ptr, banked func ptr, bit, float */
   { 1, 2, 2, 4, 8, 2, 2, 2, 2, 2, 1, 4 },
@@ -1047,6 +1061,8 @@ PORT z180_port =
     z80canAssign,
     z80notUsedFrom,
     z80symmParmStack,
+    z80canJoinRegs,
+    z80canSplitReg,
   },
   /* Sizes: char, short, int, long, long long, near ptr, far ptr, gptr, func ptr, banked func ptr, bit, float */
   { 1, 2, 2, 4, 8, 2, 2, 2, 2, 2, 1, 4 },
@@ -1172,6 +1188,8 @@ PORT r2k_port =
     z80canAssign,
     z80notUsedFrom,
     z80symmParmStack,
+    z80canJoinRegs,
+    z80canSplitReg,
   },
   /* Sizes: char, short, int, long, long long, near ptr, far ptr, gptr, func ptr, banked func ptr, bit, float */
   { 1, 2, 2, 4, 8, 2, 2, 2, 2, 2, 1, 4 },
@@ -1298,6 +1316,8 @@ PORT r3ka_port =
     z80canAssign,
     z80notUsedFrom,
     z80symmParmStack,
+    z80canJoinRegs,
+    z80canSplitReg,
   },
   /* Sizes: char, short, int, long, long long, near ptr, far ptr, gptr, func ptr, banked func ptr, bit, float */
   { 1, 2, 2, 4, 8, 2, 2, 2, 2, 2, 1, 4 },
@@ -1418,14 +1438,16 @@ PORT gbz80_port =
   },
   {                             /* Peephole optimizer */
     _gbz80_defaultRules,
+    z80instructionSize,
     NULL,
     NULL,
     NULL,
-    NULL,
-    NULL,
+    z80notUsed,
     z80canAssign,
-    NULL,
+    z80notUsedFrom,
     z80symmParmStack,
+    z80canJoinRegs,
+    z80canSplitReg,
   },
   /* Sizes: char, short, int, long, long long, near ptr, far ptr, gptr, func ptr, banked func ptr, bit, float */
   { 1, 2, 2, 4, 8, 2, 2, 2, 2, 2, 1, 4 },
@@ -1552,6 +1574,8 @@ PORT tlcs90_port =
     z80canAssign,
     z80notUsedFrom,
     z80symmParmStack,
+    z80canJoinRegs,
+    z80canSplitReg,
   },
   /* Sizes: char, short, int, long, long long, near ptr, far ptr, gptr, func ptr, banked func ptr, bit, float */
   { 1, 2, 2, 4, 8, 2, 2, 2, 2, 2, 1, 4 },
@@ -1630,7 +1654,7 @@ PORT tlcs90_port =
   0,                            /* leave == */
   FALSE,                        /* Array initializer support. */
   0,                            /* no CSE cost estimation yet */
-  _z80_builtins,                /* builtin functions */
+  0,                            /* no builtin functions */
   GPOINTER,                     /* treat unqualified pointers as "generic" pointers */
   1,                            /* reset labelKey to 1 */
   1,                            /* globals & local statics allowed */
@@ -1669,7 +1693,7 @@ PORT ez80_z80_port =
     _libs_ez80_z80,             /* libs */
   },
   {                             /* Peephole optimizer */
-    _z80_defaultRules,
+    _ez80_z80_defaultRules,
     z80instructionSize,
     NULL,
     NULL,
@@ -1678,6 +1702,8 @@ PORT ez80_z80_port =
     z80canAssign,
     z80notUsedFrom,
     z80symmParmStack,
+    z80canJoinRegs,
+    z80canSplitReg,
   },
   /* Sizes: char, short, int, long, long long, near ptr, far ptr, gptr, func ptr, banked func ptr, bit, float */
   { 1, 2, 2, 4, 8, 2, 2, 2, 2, 2, 1, 4 },
@@ -1795,7 +1821,7 @@ PORT z80n_port =
     _libs_z80n,                 /* libs */
   },
   {                             /* Peephole optimizer */
-    _z80_defaultRules,
+    _z80n_defaultRules,
     z80instructionSize,
     NULL,
     NULL,
@@ -1804,6 +1830,8 @@ PORT z80n_port =
     z80canAssign,
     z80notUsedFrom,
     z80symmParmStack,
+    z80canJoinRegs,
+    z80canSplitReg,
   },
   /* Sizes: char, short, int, long, long long, near ptr, far ptr, gptr, func ptr, banked func ptr, bit, float */
   { 1, 2, 2, 4, 8, 2, 2, 2, 2, 2, 1, 4 },
