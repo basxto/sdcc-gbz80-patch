@@ -1510,6 +1510,8 @@ replace restart {
 	ex	de, hl
 } if notUsed('hl')
 
+
+// those might work for tlcs90 too
 replace restart {
 	pop	af
 	push	hl
@@ -1552,7 +1554,7 @@ replace restart {
 	ld	l, %2 (ix)
 	; common peephole 145 used ex to move %1 (ix) %2 (ix) onto the stack.
 	ex	(sp),hl
-} if notUsed('a'), notUsed('hl')
+} if isPort('z80' 'ez80_z80'), notUsed('a'), notUsed('hl')
 
 replace restart {
 	pop	af
@@ -1880,7 +1882,7 @@ replace restart {
 } by {
 	; common peephole 156 used ex to load hl into de.
 	ex	de,hl
-} if isPort('z80' 'ez80_z80' 'r2k'), notUsed('hl')
+} if isPort('z80' 'ez80_z80' 'r2k' 'tlcs90'), notUsed('hl')
 
 replace restart {
 	ld	l,e
@@ -1888,7 +1890,7 @@ replace restart {
 } by {
 	; common peephole 157 used ex to load de into hl.
 	ex	de,hl
-} if isPort('z80' 'ez80_z80' 'r2k'), notUsed('de')
+} if isPort('z80' 'ez80_z80' 'r2k' 'tlcs90'), notUsed('de')
 
 barrier
 
@@ -2194,6 +2196,6 @@ replace {
 } by {
 	djnz	%5
 	; common peephole 167 used djnz
-} if isPort('z80' 'ez80_z80' 'r2k')
+} if isPort('z80' 'ez80_z80' 'r2k' 'tlcs90')
 
 barrier
