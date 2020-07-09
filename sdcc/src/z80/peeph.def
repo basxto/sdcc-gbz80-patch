@@ -1609,7 +1609,7 @@ replace restart {
 	sbc	a,%1
 	jp	M,%2
 	; common peephole 150 used sign flag instead of testing bit 7.
-} if isPort('z80' 'ez80_z80')
+} if isPort('z80' 'ez80_z80' 'tlcs90')
 
 replace restart {
 	ld	%1,a
