@@ -40,7 +40,6 @@ replace restart {
 	; peephole 68rab used (hl) directly instead of going through %1.
 } if notUsed(%1), notSame(%1 'a')
 
-// out of sync until 77 + 93a!
 replace restart {
 	or	a,%1
 	or	a,a
@@ -216,31 +215,3 @@ replace restart {
 	dec %1
 	; peephole 141a removed redundant transfer and flag setting in a
 } if notUsed('a')
-
-barrier
-// is not in z80
-replace {
-	add	hl,de
-	jp	(hl)
-%1:
-	jp	%5
-	jp	%6
-	jp	%7
-	jp	%8
-	jp	%9
-	jp	%10
-%2:
-} by {
-	; peephole 150-6' removed addition using short jumps in jump-table.
-	jp	(hl)
-%1:
-	jr	%5
-	jr	%6
-	jr	%7
-	jr	%8
-	jr	%9
-	jr	%10
-%2:
-} if labelJTInRange
-
-barrier

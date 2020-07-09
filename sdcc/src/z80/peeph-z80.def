@@ -20,14 +20,6 @@
 // Foundation, 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
 replace restart {
-	ld	a, %1
-	push	af
-} by {
-	push	%2
-	; peephole 177 replace pushed register pair
-} if notUsed('a'), canJoinRegs(%1 '' %2), canSplitReg(%2 %3), same(%3 %1)
-
-replace restart {
 	xor	a, a
 	ld	%1 (%2), a
 } by {

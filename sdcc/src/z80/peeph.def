@@ -1873,6 +1873,14 @@ replace restart {
 	; common peephole 176 remove unnecessary load back
 } if notVolatile(%1), notVolatile(%2), notSame(%1 '(hl+)' '(hl-)'), notSame(%2 '(hl+)' '(hl-)')
 
+replace restart {
+	ld	a, %1
+	push	af
+} by {
+	push	%2
+	; common peephole 177 replace pushed register pair
+} if notUsed('a'), canJoinRegs(%1 '' %2), canSplitReg(%2 %3), same(%3 %1)
+
 // These ex-generating rules should be among the last ones since ex counts as a read from both hl and de for notUsed().
 barrier
 
@@ -2055,6 +2063,30 @@ replace {
 	jr	%10
 %2:
 } if labelJTInRange
+
+replace {
+	add	hl,de
+	jp	(hl)
+%1:
+	jp	%5
+	jp	%6
+	jp	%7
+	jp	%8
+	jp	%9
+	jp	%10
+%2:
+} by {
+	; common peephole 150-6' removed addition using short jumps in jump-table.
+	jp	(hl)
+%1:
+	jr	%5
+	jr	%6
+	jr	%7
+	jr	%8
+	jr	%9
+	jr	%10
+%2:
+} if isPort('r2k' 'r3ka'), labelJTInRange
 
 replace {
 	add	hl,de
